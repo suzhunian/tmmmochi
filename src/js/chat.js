@@ -179,18 +179,23 @@ function chatPrefetchIfLight(load) {
   try { prefix = window.activePrefix(); } catch (e) { prefix = ''; }
   if (!window.idbGet) { try { load(); } catch (e2) {} return; }
   window.idbGet(prefix + ':chat-meta').then(function (v) {
-    // FIX 2026-09-01 #120：只对「明确知道历史小」（b 已知且 ≤ 门槛）才预读，其余一律
-    // 跳过冷启动预读（进入聊天页才读）。理由：① b 缺失可能对应旧格式超大历史（唯一能
-    // 猜大小时又恰好不预读，首启不崩，下次落盘把 b 写准即可）；② 全新/空账号无数据，
-    // 跳过预读对打开聊天毫无影响。宁可少一次预读提速，绝不冒低端机崩溃的风险。
+    // FIX 2026-09-01 #120：冷启动预读门控——
+    //   · 账本「完全缺失」（全新/空账号：无 #90 账本=从未落盘，实为无数据）→ 照常预读；
+    //   · 账本存在且 b 已知 ≤ 门槛（小历史）→ 照常预读；
+    //   · 账本存在但 b 缺失或超门槛（旧格式超大历史 / 本次未写 b）→ 跳过冷启动预读，
+    //     进入聊天页才读（enterChat 会 loadMsgs）。理由：老用户超大历史在账本里一定
+    //     有 n（每次落盘都写），只是缺新字段 b；唯一能防低端机首启崩的就是此时不预读，
+    //     首启跑过我行 loadMsgs 落盘会补写 b，之后冷启动按 b 精确判断。
+    //   · 读账本失败（catch）→ 也不预读（防低端机在高峰期抢读大包）。
     let knownSmall = false;
+    let noLedger = v === undefined || v === null;
     try {
-      if (v !== undefined && v !== null) {
+      if (!noLedger) {
         const o = typeof v === 'string' ? JSON.parse(v) : v;
         if (o && typeof o.b === 'number' && o.b >= 0 && o.b <= CHAT_LAZY_BYTES) knownSmall = true;
       }
     } catch (e2) {}
-    if (knownSmall) { try { load(); } catch (e2) {} return; }
+    if (knownSmall || noLedger) { try { load(); } catch (e2) {} return; }
     try { window.__xyChatLazyLoad = true; } catch (e2) {} // 大包/未知大小 → 冷启动跳过预读
   }).catch(function () { /* 读账本失败：也不预读（防低端机在高峰期抢读大包） */ });
 }
@@ -5127,10 +5132,16 @@ return null;
 }
 function myInviteG() {
 if (myInviteGroups === null) {
-myInviteGroups = myInviteGroupsLoad() || [];
-if (!myInviteGroups.some(g => g[0] === '我的新增')) myInviteGroups.push(['我的新增', []]);
-}
-return myInviteGroups;
+	myInviteGroups = myInviteGroupsLoad() || [];
+	if (!myInviteGroups.some(g => g[0] === '我的新增')) myInviteGroups.push(['我的新增', []]);
+	}
+	// v3.28：预设分组持久化——系统内置字卡灌入 '__preset' 条目（首启自动），
+	// 这样预设分组的字卡也能单独「修改/删除」，否则预设 cards 每次 view 实时重建、无持久化可写（用户反馈「无法单独编辑字卡」）
+	if (!myInviteGroups.some(g => g[0] === '__preset')) {
+	myInviteGroups.unshift(['__preset', MY_INVITE_PRESETS.slice()]);
+	myInviteGroupsSave();
+	}
+	return myInviteGroups;
 }
 function myInviteGroupsSave() {
 myInviteDirty = true;
@@ -5157,9 +5168,12 @@ return false;
 }).catch(() => false);
 }
 function myInviteView() {
-const out = [{ key: '__preset', label: '预设', cards: MY_INVITE_PRESETS.slice(), preset: true }];
-myInviteG().forEach(g => {
-if (!Array.isArray(g) || !Array.isArray(g[1]) || !g[0]) return;
+	const out = [];
+	const pre = myInviteG().find(g => g[0] === '__preset');
+	out.push({ key: '__preset', label: '预设', cards: (pre && Array.isArray(pre[1])) ? pre[1].slice() : MY_INVITE_PRESETS.slice(), preset: true });
+	myInviteG().forEach(g => {
+	if (g[0] === '__preset') return;
+	if (!Array.isArray(g) || !Array.isArray(g[1]) || !g[0]) return;
 out.push({ key: g[0], label: g[0], cards: g[1].slice(), user: true });
 });
 return out;
@@ -5169,20 +5183,42 @@ const groups = myInviteView();
 if (!groups.some(g => g.key === myInviteCurGroup)) myInviteCurGroup = groups.length ? groups[0].key : '__preset';
 return myInviteCurGroup;
 }
+// v3.x：邀请TA ——批量管理模式态（预设为系统内置分组：仅自建分组可进批量，可重命名/删除分组）
+let tiInviteBatch = false;   // 批量管理模式开关
+let tiInviteSel = new Set(); // 批量勾选：当前自建分组内字卡下标集合
 function renderInviteBank() {
 const wrap = document.getElementById('invite-groups');
 const list = document.getElementById('invite-list');
 if (!wrap || !list) return;
 myInviteCurGroupKey();
 const groups = myInviteView();
+const cur = groups.find(g => g.key === myInviteCurGroup) || groups[0] || { key: '__preset', cards: [] };
+const curIsPreset = cur.key === '__preset';
+// 预设为系统内置分组：切回预设时自动退出批量态
+if (curIsPreset && tiInviteBatch) { tiInviteBatch = false; tiInviteSel.clear(); }
 wrap.innerHTML = '';
 groups.forEach(g => {
 const chip = document.createElement('span');
 chip.className = 'emoji-g-chip' + (myInviteCurGroup === g.key ? ' sel' : '');
+if (tiInviteBatch && g.user) {
+chip.innerHTML = escTxt(g.label) + g.cards.length +
+'<span class="inv-g-op" data-op="rn">✎</span>' +
+'<span class="inv-g-op" data-op="rm">✕</span>';
+} else {
 chip.textContent = g.label + g.cards.length;
+}
+const gkey = g.key, glabel = g.label;
 chip.addEventListener('click', (e) => {
 e.stopPropagation();
-myInviteCurGroup = g.key;
+const op = e.target && e.target.closest ? e.target.closest('.inv-g-op') : null;
+if (op) {
+if (op.getAttribute('data-op') === 'rn') myInviteRenameGroup(gkey, glabel);
+else if (op.getAttribute('data-op') === 'rm') myInviteRemoveGroup(gkey);
+return;
+}
+if (myInviteCurGroup === gkey) return;
+myInviteCurGroup = gkey;
+tiInviteSel.clear();
 renderInviteBank();
 });
 wrap.appendChild(chip);
@@ -5193,9 +5229,42 @@ add.textContent = '＋ 分组';
 add.title = '新建我的邀请分组';
 add.addEventListener('click', (e) => { e.stopPropagation(); myInviteNewGroup(); });
 wrap.appendChild(add);
+// v3.x：批量管理 chip（顶部分组栏右侧）——进入后批量勾选字卡，亦可在自建分组上 ✎重命名/✕删除
+const batch = document.createElement('span');
+batch.className = 'emoji-g-chip inv-g-batch' + (tiInviteBatch ? ' on' : '');
+batch.textContent = tiInviteBatch ? '完成' : '批量管理';
+batch.title = '批量管理：勾选字卡后可全选/删除/移动，也支持重命名/删除自建分组';
+batch.addEventListener('click', (e) => { e.stopPropagation(); toggleInviteBatch(); });
+wrap.appendChild(batch);
 list.innerHTML = '';
-const cur = groups.find(g => g.key === myInviteCurGroup) || groups[0];
-if (!cur || !cur.cards.length) {
+if (tiInviteBatch && !curIsPreset) {
+if (!cur.cards.length) {
+list.innerHTML = '<div class="cc-empty">该分组暂无邀请字卡<br>在下方输入邀请内容，点「存入」添加</div>';
+} else {
+cur.cards.forEach((c, i) => {
+const item = document.createElement('div');
+item.className = 'cc-item glass invite-batch-item';
+item.innerHTML = '<label class="inv-batch-cb"><input type="checkbox" class="inv-batch-cb-in" data-bidx="' + i + '"' + (tiInviteSel.has(i) ? ' checked' : '') + '></label><div class="cc-txt"><div class="t">' + escTxt(c) + '</div></div>';
+const cb = item.querySelector('.inv-batch-cb-in');
+if (cb) cb.addEventListener('change', () => {
+if (cb.checked) tiInviteSel.add(i); else tiInviteSel.delete(i);
+updateInviteBatchBarUI();
+});
+list.appendChild(item);
+});
+}
+list.insertAdjacentHTML('beforeend',
+'<div class="ti-batch-bar" id="inv-batch-bar">' +
+'<span class="ti-batch-cnt" id="inv-batch-cnt">已选 <em>' + tiInviteSel.size + '</em> 条</span>' +
+'<button class="ti-batch-btn" id="inv-batch-all">全选</button>' +
+'<button class="ti-batch-btn" id="inv-batch-move"' + (tiInviteSel.size === 0 ? ' disabled' : '') + '>移动</button>' +
+'<button class="ti-batch-btn ti-batch-del-btn" id="inv-batch-del"' + (tiInviteSel.size === 0 ? ' disabled' : '') + '>删除</button>' +
+'<button class="ti-batch-btn" id="inv-batch-cancel">取消</button>' +
+'</div>');
+bindInviteBatchBar();
+return;
+}
+if (!cur.cards.length) {
 list.innerHTML = '<div class="cc-empty">暂无邀请字卡<br>在下方输入邀请内容，点「存入」添加</div>';
 return;
 }
@@ -5203,9 +5272,9 @@ cur.cards.forEach((c, i) => {
 const item = document.createElement('div');
 item.className = 'cc-item glass';
 item.innerHTML = '<div class="cc-txt"><div class="t">' + escTxt(c) + '</div></div>';
-item.addEventListener('click', () => { sendInviteContent(c); });
-if (cur.user) {
-const ops = document.createElement('div');
+	// v3.28：所有分组（含预设）的字卡都给「修改/删除」按钮——预设分组已持久化，myInviteEdit/myInviteDel 可直接写回（用户反馈预设字卡没法单独编辑）
+	item.addEventListener('click', () => { sendInviteContent(c); });
+	const ops = document.createElement('div');
 ops.className = 'poke-card-ops';
 const eb = document.createElement('button');
 eb.type = 'button';
@@ -5220,12 +5289,121 @@ db.title = '删除';
 db.textContent = '✕';
 db.addEventListener('click', (e) => { e.stopPropagation(); myInviteDel(i, c); });
 ops.appendChild(eb);
-ops.appendChild(db);
-item.appendChild(ops);
+	ops.appendChild(db);
+	item.appendChild(ops);
+	list.appendChild(item);
+	});
 }
-list.appendChild(item);
+function toggleInviteBatch() {
+const groups = myInviteView();
+const cur = groups.find(g => g.key === myInviteCurGroup);
+if (!cur) return;
+if (!tiInviteBatch && cur.key === '__preset') {
+toast('预设为系统内置分组，请切换到自建分组后批量管理');
+return;
+}
+tiInviteBatch = !tiInviteBatch;
+tiInviteSel.clear();
+renderInviteBank();
+}
+function myInviteCurGroupArr() {
+const g = myInviteG().find(x => Array.isArray(x) && Array.isArray(x[1]) && x[0] === myInviteCurGroup);
+return (g && Array.isArray(g[1])) ? g[1] : null;
+}
+function updateInviteBatchBarUI() {
+const cnt = document.getElementById('inv-batch-cnt');
+if (cnt) cnt.innerHTML = '已选 <em>' + tiInviteSel.size + '</em> 条';
+const del = document.getElementById('inv-batch-del');
+if (del) del.disabled = tiInviteSel.size === 0;
+const mv = document.getElementById('inv-batch-move');
+if (mv) mv.disabled = tiInviteSel.size === 0;
+}
+function bindInviteBatchBar() {
+const curArr = myInviteCurGroupArr();
+const n = curArr ? curArr.length : 0;
+const all = document.getElementById('inv-batch-all');
+if (all) all.addEventListener('click', () => {
+if (tiInviteSel.size >= n) tiInviteSel.clear();
+else for (let i = 0; i < n; i++) tiInviteSel.add(i);
+renderInviteBank();
+});
+const cancel = document.getElementById('inv-batch-cancel');
+if (cancel) cancel.addEventListener('click', () => {
+tiInviteBatch = false; tiInviteSel.clear(); renderInviteBank();
+});
+const del = document.getElementById('inv-batch-del');
+if (del) del.addEventListener('click', () => {
+if (tiInviteSel.size === 0) { toast('请先勾选要删除的字卡'); return; }
+const cnt = tiInviteSel.size;
+window.openModal('删除选中的 ' + cnt + ' 条邀请字卡？', '', function () {
+const arr = myInviteCurGroupArr();
+if (!arr) return;
+Array.from(tiInviteSel).sort((a, b) => b - a).forEach(i => { if (i >= 0 && i < arr.length) arr.splice(i, 1); });
+myInviteGroupsSave();
+tiInviteSel.clear();
+tiInviteBatch = false;
+myInviteCurGroupKey();
+renderInviteBank();
+toast('已删除 ' + cnt + ' 条');
+}, { noInput: true, staticText: '此操作不可撤销。' });
+});
+const moveBtn = document.getElementById('inv-batch-move');
+if (moveBtn) moveBtn.addEventListener('click', () => {
+if (tiInviteSel.size === 0) { toast('请先勾选要移动的邀请字卡'); return; }
+const groups = myInviteG().filter(g => Array.isArray(g) && Array.isArray(g[1]) && g[0] && g[0] !== myInviteCurGroup);
+if (!groups.length) { toast('没有其他可移动的分组'); return; }
+const opts = groups.map(g => ({ label: g[0], value: g[0] }));
+const cnt = tiInviteSel.size;
+window.openModal('移动到分组', '', function (v) {
+const target = String(v || '');
+if (!target) { toast('请选择目标分组'); return; }
+const src = myInviteCurGroupArr();
+if (!src) return;
+let tArr = myInviteG().find(g => Array.isArray(g) && Array.isArray(g[1]) && g[0] === target);
+if (!tArr) { tArr = [target, []]; myInviteG().push(tArr); }
+let moved = 0;
+Array.from(tiInviteSel).sort((a, b) => b - a).forEach(i => { if (i >= 0 && i < src.length) { tArr[1].push(src[i]); src.splice(i, 1); moved++; } });
+myInviteGroupsSave();
+tiInviteSel.clear();
+tiInviteBatch = false;
+myInviteCurGroupKey();
+renderInviteBank();
+toast('已移动 ' + moved + ' 条到「' + target + '」');
+}, { pills: opts, pill: opts[0].value, noInput: true });
 });
 }
+function myInviteRenameGroup(gk, oldLabel) {
+window.openModal('重命名分组', oldLabel, function (v) {
+v = (v || '').trim();
+if (!v) { toast('请输入分组名'); return; }
+const groups = myInviteG();
+const g = groups.find(x => x[0] === gk);
+if (!g) return;
+if (v === gk) { toast('名称未变化'); return; }
+if (groups.some(x => x[0] === v)) { toast('分组「' + v + '」已存在'); return; }
+g[0] = v;
+if (myInviteCurGroup === gk) myInviteCurGroup = v;
+myInviteGroupsSave();
+renderInviteBank();
+toast('已重命名');
+});
+}
+function myInviteRemoveGroup(gk) {
+window.openModal('删除该分组？', '', function () {
+const groups = myInviteG();
+const g = groups.find(x => x[0] === gk);
+if (!g) return;
+const cnt = Array.isArray(g[1]) ? g[1].length : 0;
+groups.splice(groups.indexOf(g), 1);
+if (myInviteCurGroup === gk) myInviteCurGroup = null;
+myInviteGroupsSave();
+tiInviteSel.clear();
+myInviteCurGroupKey();
+renderInviteBank();
+toast(cnt ? '已删除分组及 ' + cnt + ' 条字卡' : '已删除分组');
+}, { noInput: true, staticText: '删除「' + gk + '」分组及其中的全部字卡？此操作不可撤销。' });
+}
+// end renderInviteBank
 function saveInviteInput() {
 const v = (chatAskInput && chatAskInput.value || '').trim();
 if (!v) { toast('先输入邀请内容'); return; }
@@ -5285,6 +5463,8 @@ document.addEventListener('contact-switched', function () {
 myInviteDirty = false;
 myInviteGroups = null;
 myInviteCurGroup = '__preset';
+tiInviteBatch = false;
+tiInviteSel.clear();
 });
 const moreInvite = document.getElementById('more-invite');
 if (moreInvite) {
@@ -5631,7 +5811,107 @@ let activeMsgEl = null;   // 当前操作的消息 DOM
 let activeSide = 'in';    // 当前操作消息方向
 let lastQuote = null;     // 待引用内容
 function getFav() { try { return JSON.parse(store.get('fav-msgs') || '[]'); } catch (e) { return []; } }
-function saveFav(list) { store.set('fav-msgs', JSON.stringify(list)); }
+function saveFav(list) { store.set('fav-msgs', JSON.stringify(list)); try { scheduleFavImgPass(2500); } catch (e) {} }
+// ===== v3.26.x #139：收藏图片压缩 =====
+// 收藏把消息 parts / 图片 dataURL 原样整份进库，与聊天记录重复存同一批图（诊断实证
+// fav-msgs 全桌面 ≈21MB）。压缩走「读-压缩-写前 CAS 比对」：压缩期间任何其他写入
+// （再收藏/删除/换桌面）都会使快照失效并重排，绝不覆盖新数据，绝不丢收藏。
+// 规则（宁可不压，不可压坏）：只压 data:image/*（GIF 保动画、SVG 矢量、<4KB 小图跳过）；
+// 480px 上限（气泡显示宽度内）；优先 WebP（iOS canvas 不支持会回退返回 PNG，前缀检测后
+// 改试 JPEG 白底）；结果必须比原图更小才采用；单张失败只影响该张，整批异常放弃本轮。
+function compressFavDataUrl(src) {
+return new Promise((resolve) => {
+try {
+if (typeof src !== 'string' || src.indexOf('data:image/') !== 0 || src.length < 4096) { resolve(null); return; }
+if (/^data:image\/(gif|svg)/i.test(src)) { resolve(null); return; }
+const img = new Image();
+img.onload = () => {
+try {
+const scale = Math.min(1, 480 / Math.max(img.width, img.height));
+const w = Math.max(1, Math.round(img.width * scale));
+const h = Math.max(1, Math.round(img.height * scale));
+const c = document.createElement('canvas');
+c.width = w; c.height = h;
+const ctx = c.getContext('2d');
+ctx.drawImage(img, 0, 0, w, h);
+let out = c.toDataURL('image/webp', 0.82);
+if (out.indexOf('data:image/webp') !== 0) {
+ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+ctx.drawImage(img, 0, 0, w, h);
+out = c.toDataURL('image/jpeg', 0.82);
+}
+resolve(out.length < src.length ? out : null);
+} catch (e) { resolve(null); }
+};
+img.onerror = () => resolve(null);
+img.src = src;
+} catch (e) { resolve(null); }
+});
+}
+async function compressFavListImages(list) {
+let changed = false;
+const out = new Array(list.length);
+for (let i = 0; i < list.length; i++) {
+let f = list[i];
+try {
+if (f && typeof f.text === 'string' && f.text.indexOf('data:image/') === 0) {
+const v = await compressFavDataUrl(f.text);
+if (v) { f = Object.assign({}, f, { text: v }); changed = true; }
+}
+if (f && Array.isArray(f.parts) && f.parts.length) {
+const parts = new Array(f.parts.length);
+let pChanged = false;
+for (let j = 0; j < f.parts.length; j++) {
+const p = f.parts[j];
+let np = p;
+if (p && typeof p.v === 'string' && p.v.indexOf('data:image/') === 0) {
+const v = await compressFavDataUrl(p.v);
+if (v) { np = Object.assign({}, p, { v: v }); pChanged = true; }
+}
+parts[j] = np;
+}
+if (pChanged) { f = Object.assign({}, f, { parts: parts }); changed = true; }
+}
+} catch (e) {}
+out[i] = f;
+}
+return changed ? out : null;
+}
+let _favImgPassT = null, _favImgPassRetries = 0;
+function scheduleFavImgPass(delay) {
+clearTimeout(_favImgPassT);
+_favImgPassT = setTimeout(favImgPass, delay || 3000);
+}
+// 返回 true=完整跑完一轮（无论是否压缩了内容）；false=期间有并发写入被 CAS 打断（已自动重排）
+async function favImgPass() {
+try {
+const rawSnap = store.get('fav-msgs');
+if (!rawSnap || rawSnap.length < 4096) return true;
+let list;
+try { list = JSON.parse(rawSnap); } catch (e) { return true; }
+if (!Array.isArray(list)) return true;
+const out = await compressFavListImages(list);
+if (!out) return true;
+const rawNow = store.get('fav-msgs');
+if (rawNow !== rawSnap) {
+// 压缩期间收藏被写过——以最新数据重排（最多 5 次，防极端高频写入空转）
+if (++_favImgPassRetries < 5) { scheduleFavImgPass(5000); return false; }
+return true;
+}
+_favImgPassRetries = 0;
+store.set('fav-msgs', JSON.stringify(out));
+return true;
+} catch (e) { return true; }
+}
+// 存量一次性迁移：本桌面没跑过压缩扫描才执行（新收藏由 saveFav 钩子触发增量压缩）
+function favImgMigrateIfNeed() {
+try { if (store.get('fav-img-cmp-v1') === '1') return; } catch (e) {}
+favImgPass().then(function (settled) {
+if (settled) { try { store.set('fav-img-cmp-v1', '1'); } catch (e) {} }
+});
+}
+document.addEventListener('mochi-restore-done', function () { setTimeout(favImgMigrateIfNeed, 12000); });
+document.addEventListener('contact-switched', function () { setTimeout(favImgMigrateIfNeed, 12000); });
 function syncFavMsgText(oldText, newText) {
 if (oldText === newText) return;
 const fav = getFav();
@@ -7570,7 +7850,12 @@ if (window.logFish) window.logFish();
 try { window.__replyOnceDiag = 0; console.log('[mochi-reply] addMsg 发送, 重置 replyOnce 计数'); } catch(e){}
 scheduleReply();
 };
-if (send) send.addEventListener('click', () => addMsg(input.innerText));
+if (send) {
+// v3.30.x：点发送不收输入法——点按按钮的 mousedown 默认把焦点从输入框抢走（移动端键盘随即收起），
+// preventDefault 阻止焦点转移；发送后回焦输入框兜底（部分内核 click 路径仍会失焦，见 FIX-REGRESSION #127）
+send.addEventListener('mousedown', (e) => { e.preventDefault(); });
+send.addEventListener('click', () => { addMsg(input.innerText); try { input.focus(); } catch (e) {} });
+}
 // v3.17.x：删除了此前的 pointerup 监听——它在 click 之前把 lastSendTs 刷新为当前时间，
 // 使 addMsg 的防重发守卫（t0===lastSendTxt 且间隔<2.5s）对「用户重新输入相同文本后
 // 再点发送」必然命中：消息被吞、输入框被清空（红米 K80 Chrome 反馈「点发送无法发送」，
@@ -7603,6 +7888,8 @@ input._mClearTxt = '';
 });
 input.addEventListener('keydown', (e) => {
 if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
+// 聊天设置「回车键发送消息」关闭时不发送：不 preventDefault，安卓 ce-box 走原事件默认行为插入换行
+try { if (store.get('cs-enter-send') === 'off') return; } catch (err) {}
 e.preventDefault();
 addMsg(input.innerText);
 }

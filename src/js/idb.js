@@ -20,9 +20,28 @@
             db.createObjectStore(STORE);
           }
         };
+        // v3.26.x #135：版本升级被其他标签页/旧连接阻塞——原实现无 onblocked 处理：
+        // blocked 请求既不 onsuccess 也不 onerror，open() 永不落地，所有 open().then
+        // 挂死（含启动回填 idbRestore → 开屏永远「正在加载数据…」）。新版本 SW 换代后
+        // 新旧页面并存时高发（iPad 7 + Edge 实测卡开屏）。收到 blocked 主动失败本次
+        // open（下次调用重建）；旧连接方随后释放或关闭旧标签页后自然恢复。
+        req.onblocked = () => {
+          try { dbPromise = null; } catch (e1) {}
+          reject(new Error('idb open blocked'));
+        };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
       } catch (e) { reject(e); }
+      // v3.26.x #135：open() 兜底落地——iOS/Edge 内核存在「open 请求既不 success
+      // 也不 error 也不 blocked」的挂起形态（IDB 服务进程被杀瞬间发起的请求）。原实现
+      // 各事务超时计时器都注册在 open().then 里，open 不落地则计时器永不启动 →
+      // idbGet/idbGetMany/idbListKeys/idbRestore 全部永久挂起，开屏永远停在
+      // 「正在加载数据…」（iPad 7 + Edge 实测）。8s 未落地判失败：清 dbPromise 让
+      // 下次调用重建连接，调用方 catch 走 LS 兜底/慢保险丝，开屏永不卡死。
+      setTimeout(function () {
+        try { dbPromise = null; } catch (e2) {}
+        reject(new Error('idb open hang'));
+      }, 8000);
     });
     // v3.6.x 修复（open 失败永久不可用）：失败时清 dbPromise 允许下次重试——
     // 原实现缓存 rejected Promise，整个会话 IDB 永久不可用（隐私模式/配额耗尽/
@@ -976,6 +995,74 @@
       })();
     }
   } catch (e) {}
+
+  window.idbBigSize = function (key) {
+    // v3.26.x #139：大键尺寸只读访问（__big-idx 索引在 set/回填时记录 >200KB 值的长度）。
+    // 供字卡库去重等模块免读大值做「是否有变化」预检，避免每次会话把 100MB+ 键拉进堆。
+    try { const s = _bigIdx[key]; return typeof s === 'number' ? s : null; } catch (e) { return null; }
+  };
+
+  // ===== v3.26.x #139：LS 大键残留清扫（恢复设置保存配额） =====
+  // 现象（#139 诊断）：LS 整域 10MB 满、写探针 QuotaExceededError，设置/桌面保存失败。
+  // xyStore.set 对 >LS_BIG_LIMIT 的值会清 LS 副本，但「全量备份导入直写 LS」且发生在
+  // 上方 v3.5.92 迁移（sessionStorage 门，每浏览器会话只跑一次）之后时，存量残留直到
+  // 下次重启都没人清（fav-msgs 207KB 等 LS+IDB 双份计费）。补一个事件驱动的幂等清扫：
+  // restore 完成 / 备份导入（都会派发 mochi-restore-done）后延迟执行——
+  //   · IDB 值与 LS 值完全一致 → 纯去重，直接删 LS 副本（零数据风险）；
+  //   · IDB 缺失/落后 → 先按 retainValue 同规则以 LS 追平 IDB，写成功且 LS 未被业务
+  //     再写才删 LS（写失败本轮跳过下轮收敛；绝不先删后写）。
+  //   · IDB 值是非字符串（结构化存储）→ 不动（不是本清扫的目标形态）。
+  let _lsSweepDone = false;
+  function lsResidueSweep() {
+    if (_lsSweepDone) return;
+    _lsSweepDone = true;
+    if (!window.idbGet || !window.idbSet) return;
+    let names = [];
+    try { names = Object.keys(localStorage); } catch (e) { return; }
+    const cands = names.filter(function (k) {
+      if (typeof k !== 'string' || k.indexOf('xy-home-v2:') !== 0) return false;
+      if (isChatMsgsKey(k)) return false;                  // 聊天 LS 快照是唯一备份，绝不动
+      if (k.indexOf('music-file:') >= 0) return false;     // 音频有专属迁移路径
+      if (k === BIG_IDX_KEY || k === LS_DIRTY_KEY || k === WRJ_KEY || k.indexOf('__wr-j:') === 0) return false;
+      if (k === 'xy-home-v2:__auto-backup-snapshot') return false;
+      let v = null;
+      try { v = localStorage.getItem(k); } catch (e) { return false; }
+      return typeof v === 'string' && v.length > LS_BIG_LIMIT;
+    });
+    let i = 0;
+    (function step() {
+      if (i >= cands.length) return;
+      const k = cands[i++];
+      let lsVal = null;
+      try { lsVal = localStorage.getItem(k); } catch (e) {}
+      if (typeof lsVal !== 'string' || lsVal.length <= LS_BIG_LIMIT) { setTimeout(step, 0); return; }
+      window.idbGet(k).then(function (idbVal) {
+        const next = function () { setTimeout(step, 0); };
+        if (idbVal && typeof idbVal !== 'string') { next(); return; }
+        if (typeof idbVal === 'string' && idbVal === lsVal) {
+          // 纯去重：IDB 已有同值，LS 副本是双倍计费残留；删前复读防业务刚写入新值
+          try { if (localStorage.getItem(k) === lsVal) localStorage.removeItem(k); } catch (e) {}
+          next(); return;
+        }
+        // IDB 缺失/落后 → 以 LS 为最新追平 IDB，写成功且 LS 未变才删（绝不先删后写）
+        window.idbSet(k, lsVal).then(function (ok) {
+          if (ok) {
+            let cur = null;
+            try { cur = localStorage.getItem(k); } catch (e) {}
+            if (cur === lsVal) {
+              if (!memoryCache) memoryCache = {};
+              if (!(k in memoryCache)) memoryCache[k] = lsVal;
+              try { localStorage.removeItem(k); } catch (e) {}
+            }
+          }
+          next();
+        }).catch(next);
+      }).catch(function () { setTimeout(step, 0); });
+    })();
+  }
+  document.addEventListener('mochi-restore-done', function () { setTimeout(lsResidueSweep, 20000); });
+  setTimeout(lsResidueSweep, 45000); // restore 挂起/事件丢失兜底（_lsSweepDone 防重入）
+  window.idbLsResidueSweep = lsResidueSweep;
 
   // v3.16.x：跨上下文同步——get 改 memoryCache 优先后，另一上下文（PWA + 浏览器标签双开、
   // 多窗口）写入 localStorage 的新值会被本侧 memoryCache 旧值遮蔽。storage 事件（仅跨上下文
