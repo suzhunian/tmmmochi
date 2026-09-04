@@ -39,6 +39,10 @@
    全部铺开（其余 card-tabs 共用处不受影响）。
    v3.16.x：功能触发字卡拆到独立页 #fc-tabs（12 个功能 tab 同量级），同样换行铺开 */
 #dc-tabs.card-tabs, #fc-tabs.card-tabs { flex-wrap:wrap; overflow-x:visible; row-gap:8px; }
+/* v3.32.x：自定义字卡页 #cc-tabs 新增 13 个功能分类 tab（其他互动功能字卡），共 20 个，
+   同 dc/fc 换行铺开；三个入口按 openCcPage 切换显示——功能入口只显功能 tab、
+   公用/专属入口只显基础分类 tab（.cc-tabs-sep 分隔条已随分区移除） */
+#cc-tabs.card-tabs { flex-wrap:wrap; overflow-x:visible; row-gap:8px; }
 .cc-tab {
   flex:0 0 auto; display:inline-flex; align-items:center; gap:5px;
   padding:9px 14px; font-size:13px; border-radius:99px;
@@ -48,6 +52,10 @@
   -webkit-tap-highlight-color:transparent;
 }
 .cc-tab svg { width:15px; height:15px; }
+/* v3.32.x：三入口 tab 分区靠 openCcPage 设 hidden 属性实现——.cc-tab 自带
+   display:inline-flex 会覆盖 UA 的 [hidden] 默认隐藏（同 base.css .poke-tools 教训），
+   必须补作者规则 hidden 才真正生效 */
+.cc-tab[hidden] { display:none; }
 .cc-tab.sel { background:#111; color:#fff; border-color:#111; }
 /* 分类 tab 字卡数量徽标 */
 .cc-tab-n {

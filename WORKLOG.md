@@ -1,3 +1,74 @@
+# 本次构建者：AI-B（本会话：#156 群聊模式没隐藏桌面占卜图标修复，改动 src/js/personalize.js、build.mjs 哨兵 2 条、tools/verify-group-desk-icon.mjs、FIX-REGRESSION.md #156 行；开工时工作区含并行会话已声明完成的「其他互动功能字卡」改动 chatcard.js/default-cards.js/template.html 一并收口）
+
+### 2026-09-04 19:1x（用户反馈三入口还是没分开：.cc-tab 的 display:inline-flex 覆盖 [hidden] 致分区从未生效；已修复构建提交）
+* [AI-A 域]（**改动文件：src/css/chat-pages.css（补 .cc-tab[hidden]{display:none}——openCcPage 的 hidden 分区逻辑因此前被作者 display 规则覆盖而完全无效，同 base.css .poke-tools[hidden] 记载过的教训）；构建状态：已构建·sw mochi-mtmugtlm 哨兵 312/312 哑哨兵 0；已提交推送**）。
+* 教训：上上条「三入口 tab 分区」实际上从未在真机生效（hidden 属性被 .cc-tab{display:inline-flex} 覆盖），用户连报两次「没分开/混了」的根因即此；今后对自带 display 的元素切换 hidden 必须先查有无作者规则，或改用类切换。
+* 待真机：四个入口（公用/专属/功能·公用/功能·专属）各自只显示自己的 tab。
+
+
+
+### 2026-09-04 18:5x（用户需求：其他互动功能字卡也分公用/专属——双入口拆分；已构建已提交）
+* [AI-A 域]（**改动文件：src/template.html（可自定义字卡区功能字卡入口拆两行：·公用 #li-fun-cards-public/#cc-fun-pub-count、·专属 #li-fun-cards-mine/#cc-fun-count；功能介绍页文案同步）、src/js/chatcard.js（li-fun-cards-public→openCcPage('public','fish')；页标题按作用域带 ·公用/·专属 后缀；refreshLibCounts 角标拆分=专属行显 libCounts.fun、公用行显 libCounts.pubFun，各自走缓存零解析）；构建状态：已构建·sw mochi-mtmtucbi4 哨兵 312/312 哑哨兵 0；已提交推送**）。
+* 说明：功能字卡存储本就双作用域（存 cc-groups 同名字段），getCustomFuncCards 取池时专属+公用合并、各自剔除停用分组——本条只是把入口/角标/标题拆开对齐「公用字卡/专属字卡」两行结构。
+* 验证：node --check 过；verify-cc-tab-totals 7/7、verify-cc-group-off 12/12。
+* 待真机：两个功能入口各显各的角标；在 ·公用 添加的摸鱼字卡所有联系人触发摸鱼时可用，·专属 仅当前联系人。
+
+
+
+### 2026-09-04 18:3x（用户反馈三入口没分开：自定义字卡三入口 tab 分区隔离；已构建已提交）
+* [AI-A 域]（**改动文件：src/js/chatcard.js（openCcPage 按入口切换 tab hidden——「其他互动功能字卡」入口只显示 13 个功能 tab，公用/专属入口只显示 7 个基础分类 tab，每次进页重建互不残留；含上条卡顿修复两处：refreshLibCounts 公用角标 pubFun 缓存化、getCustomFuncCards 专属库原始串身份缓存）、src/template.html（移除 .cc-tabs-sep 分隔条）、src/css/chat-pages.css + src/css/dark.css（移除分隔条样式）；构建状态：已构建·sw mochi-mtmtduxv 哨兵 312/312 哑哨兵 0；已提交推送**）。
+* 验证：node --check 过；verify-cc-group-off 12/12、verify-cc-tab-totals 7/7；verify-cc-scope 16/27 失败经 HEAD 与 4c952e1 双基线对照逐字一致＝既有过期断言非本次回归（待专项修脚本）；verify:all 全量 130/69/2 与基线同域浮动。
+* 待真机：三入口各看各的 tab；功能入口添加的字卡在功能 tab 管理；公用/专属页不再出现功能 tab。
+
+
+
+### 2026-09-04 17:5x（#156 群聊模式没隐藏桌面占卜图标：任意位置强制收隐藏池+布局应用末尾防复活；已构建）
+* [AI-B 域]（**改动文件：src/js/personalize.js（①applyGroupChatMode 开启分支占卜收池条件 `parentNode === mainGrid`→`parentNode !== pool`（装修桌拖到任意页/组件库加回的也隐藏）；②applyDeskLayout 末尾重应用一次群聊模式（防启动 150ms ensureP2AppsBelowWeekend 兜底重跑等 bare 布局应用把占卜从池按 desk-layout 复活回桌面）；③关闭分支维持 v3.8 原语义放回首页图标组默认位）、build.mjs（FIX_SENTINELS 2 条，数组尾部 #156）、tools/verify-group-desk-icon.mjs（新增行为断言 6/6，verify:all 自动纳入）、FIX-REGRESSION.md（#156 行）；构建状态：已构建·sw mochi-mtms1c7b 哨兵 312/312 全绿哑哨兵 0；真实产物 verify-group-desk-icon 6/6 + 核心 verify 10/10 + 红控（沙箱回退修复）T2/T3 转红复现用户场景**）。
+* 需求边界：用户反馈【群聊模式】没隐藏桌面【占卜】图标；只管桌面图标，群聊更多面板里的占卜入口（GROUP_MORE_ITEM_IDS）不动。
+* 待真机：装修桌面把占卜拖到第 2 页→设置开群聊→占卜消失+聊天右侧出现群聊按钮；关群聊→占卜回首页图标组；开启状态下刷新/切桌面占卜不闪现不残留。
+
+### 2026-09-04 17:4x（用户反馈「其他互动功能字卡」点开卡顿：本功能首版两处大库 JSON.parse 性能缺陷，已修；源已完成·未构建，请构建者收口）
+* [AI-A 域]（**改动文件：仅 src/js/chatcard.js 两处**；构建状态：未构建，与上条功能改动一并等构建者收口）。
+* 根因①（点开必卡的主因）：refreshLibCounts 里为算功能字卡角标**无条件**调 countOfKeys(pubGroupsRaw(),…)——而新入口 openCcPage 第一步 pubInvalidate() 清公用库缓存 → 每次点开都把整个公用字卡库（大库几十 MB~138MB，见 #139 记录）同步 JSON.parse 一遍 = 主线程冻结。修法：新增 libCounts.pubFun 与 cc-pub-count 同缓存节奏（仅 force/切桌面/迁移/hydrate 成功后重算一次），进页路径零解析；own 与 fun 合并共用同一次 parse（防双 parse）。
+* 根因②（隐患）：getCustomFuncCards 每次取池都 ownGroupsRaw() 整库 parse——功能触发频率高，大库同样卡。修法：专属侧加原始串身份缓存（ccFuncOwnSrc/ccFuncOwnMap），store.get 命中 memoryCache 时引用相等 O(1) 判新，任何写库（set 换新串）自动失效重算，无需枚举写路径。
+* 验证：node --check 过；--check-sentinels 312/312 在位哑哨兵 0；点开入口路径复核 = 与点「专属字卡」完全等价（仅 loadGroups 一次 parse，原有行为），角标/取池全部零强制解析。
+* 待真机（构建收口后）：大字卡库设备点「其他互动功能字卡」入口不再卡顿、进出多次角标数字稳定不闪变。
+
+### 2026-09-04 17:2x（用户需求：自定义字卡新增【其他互动功能字卡】大分类——功能字卡可自建/查看/编辑/删除；源已完成·未构建，请构建者收口）
+* [AI-A 域]（**改动文件：src/js/chatcard.js（CC_FUNC_KEYS 13 功能分类接入 cc-groups：CC_ALL_TYPES 供公用/专属合并与回复池过滤；getCustomCards/getCustomCardsFor 遍历分类时排除功能分类=功能字卡不进聊天/群聊/朋友圈/信箱/TA分享通用回复池；openCcPage(scope,startTab) 支持起始 tab + 标题「其他互动功能字卡」；新入口 li-fun-cards-mine→openCcPage('own','fish')；libCounts.fun 角标（专属+公用功能分类合计，5 处失效点同步）；新增 window.getCustomFuncCards(cat)（专属+公用合并、剔除停用分组、只收纯文字）；导出/导入分类表 EXPORT_CATS/CAT_NAMES/replace 重置对象补 13 分类；清除全部文案补说明）、src/js/default-cards.js（getLibPool 并入 getCustomFuncCards——摸鱼/吃饭/经期/喝水/花园/同频/伸手/此间/房间/存钱罐/漂流瓶/互动回应/音乐 各功能抽取池自动混入用户自建字卡，消费侧 isDefaultCardOff 过滤与兜底逻辑不变）、src/template.html（⚠️跨域·AI-B 名下：#cc-tabs 追加 .cc-tabs-sep 分隔 + 13 个功能 tab、可自定义字卡区新增「其他互动功能字卡」入口 #li-fun-cards-mine/#cc-fun-count、功能介绍页 02 组补 1 条 lg-count 13→14）、src/css/chat-pages.css（#cc-tabs 换行铺开 + .cc-tabs-sep 分隔样式）、src/css/dark.css（⚠️跨域·AI-B 域：.cc-tabs-sep 暗色适配 1 行）；构建状态：**未构建**——开工时工作区含并行会话进行中 personalize.js/build.mjs 改动不敢收口；⚠️ 时序注意：template.html+两条 css 的中间态已被并行会话 4c952e1 构建顺带入库，**chatcard.js/default-cards.js 的 JS 改动还在工作区，下次构建必须收口**（当前线上 index.html 只有 UI 无 JS 接线：新入口点了没反应、功能 tab 进得去但导出/回复池排除未生效）**）。
+* 需求/背景：用户要求在【可自定义字卡】里加一个与系统预设同名的【其他互动功能字卡】大分类，存用户自建的功能字卡（可显示/编辑/删除）；经排查各功能此前均无自定义功能字卡入口（功能池只读 DEFAULT_CARD_DATA 同源预设），本需求为全新能力，用户「之前添加的字卡不显示」实为无处可显示。
+* 方案：功能字卡复用 cc-groups 存储（同名字段 fish/eat/period/water/garden/sync/reach/cjian/room/piggy/drift/interact/music）——公用/专属双作用域、分组停用开关、批量导入【组名】前缀、单卡点击编辑、管理字卡批量删/移动、拖拽排序、搜索全部零改动自动生效；消费侧唯一收口 getLibPool 并入，13 个功能无需逐个改。
+* 验证：node --check 两文件过；`node build.mjs --check-sentinels` 313 条全绿哑哨兵 0（check 前基线一致，未动哨兵）；回复池排除口径核对：chat.js/group-chat.js/mail.js/feed.js/calendar.js/bg-keep.js/ta-ask.js 全部经 getCustomCards*/getMediaCards*（已排除）或指定分类（天然不受影响），p2-features.js 原始读 cc-groups 处只取 text 分类不受影响。
+* 待真机（构建收口后）：字卡库→可自定义字卡→其他互动功能字卡 入口进页落在「摸鱼」tab；批量导入/编辑/删除/分组管理可用；自定义「摸鱼」字卡触发摸鱼功能时会被 TA 抽到；聊天自动回复不抽功能字卡；暗色模式分隔标题可读。
+
+### 2026-09-04 17:5x（防倒卖工具箱补完：bulletin 远程时效公告 + pwa.js 第二锚点看门狗；verify 扩至 18/18；已随并行会话构建入库）
+* [AI-B 域]（**改动文件：src/js/clock.js（回填 IIFE 加 bulletin：官方 notice.json 可下发 {bulletin:{text,until}}，until=epoch 毫秒，所有联网副本含二传开屏显示「公告」条，内容变化重写/过期自动摘除/不带字段完全不渲染——发现倒卖时可远程对所有副本挂提醒）、src/js/pwa.js（末尾新增「在位看门狗」第二锚点：每 5s 检查两条官方声明缺失即本地常量补回，只补缺失不改写已在位内容，与 clock.js 回填互为备份——想去掉声明必须同时改两个文件，运行时删除 5s 内自动恢复）、build.mjs（FIX_SENTINELS +3：bulletin 在位判定/公告重写比对/pwa 看门狗补回，均唯一逻辑锚点）、tools/verify-anti-scam-backfill.mjs（拦截 helper 重构支持 fulfill 假官方应答，新增用例6 运行时删条看门狗补回/用例7 bulletin 下发显示/用例8 过期摘除）、FIX-REGRESSION.md（新增行，**原编 #154 与并行会话撞号已改 #155**）；构建状态：本会话两次构建（末次 sw mochi-mtmqoukw 哨兵 312/312），**产物同时包含并行会话 #154 表情包同步的 chat.js/feed.js/personalize.js + 其哨兵，随本次提交一并收口，对方 WORKLOG 已留痕**）。
+* 验证：node --check 全过；verify-anti-scam-backfill **18/18**；构建哨兵 312/312 全绿哑哨兵 0。
+* 用法备忘：临时公告=改 src/pwa/notice.json 加 "bulletin": { "text": "…", "until": <epoch毫秒> } → 构建部署；不写字段=无公告；真机待验证三项见 FIX-REGRESSION #155。
+
+### 2026-09-04 17:1x（#154 朋友圈评论「我的表情包」与聊天面板不同步：feed 只读 store 层、chat 内存副本才经 IDB 权威自愈；已构建）
+* [AI-A 域]（**改动文件：src/js/chat.js（myEmojiSave 后暴露 window.getMyEmojiGroups 返回 myGroups 最新内存副本）、src/js/feed.js（comStickerGroups mine 分支优先取该副本，chat.js 异常时旧 store 读兜底）、build.mjs（FIX_SENTINELS 2 条，追加在并行会话 3 条之后）、FIX-REGRESSION.md（#154 行）；构建状态：已构建**）。
+* 根因：`my-emoji-groups` 常为大键（>200KB 只进 IDB+内存不回写 LS），启动回填受大键驻留预算/neverRead 挂起与 retainValue「LS 优先」规则限制，store 层（memoryCache/LS）可能停留在旧 LS 快照；聊天面板每次打开 reloadMyEmojiFromIdb 用 IDB 权威值自愈内存副本，朋友圈评论面板 comStickerGroups 只读 store 层 → 两侧不同步。
+* 验证：node --check 两文件过；构建哨兵全绿哑哨兵 0，我的锚点在位。待真机：聊天上传/删除表情包后，朋友圈评论表情包面板「我的表情包」分组与内容与聊天面板一致。
+
+
+### 2026-09-04 17:4x（防倒卖文案铺开到开屏以外：链接分享卡片/设置页/功能介绍页/PWA 安装信息；已构建）
+* [AI-B 域]（**改动文件：src/template.html（①title 改「Mochi 字卡传讯（完全免费·禁止倒卖）」+ meta description 补免费/倒卖诈骗/署名/买家直呼——QQ/微信转发链接时分享卡片标题与摘要直接显示防倒卖文案，掐死转发环节；②设置页 set-alert 静态块补署名+严禁倒卖+买家直呼句，与运行时回填写入内容一致（此前静态兜底缺倒卖句致回填每次重写，现 marked 通过不再重写）；③功能介绍页 lic 页 hero 药丸加「完全免费·禁止倒卖」、许可卡药丸加「严禁倒卖」+ 许可条目加严禁倒卖/买家直呼行）、src/pwa/manifest.json（description 同步防倒卖文案，PWA 安装提示/应用信息可见）；构建状态：已构建·sw mochi-mtmq0vkg 哨兵 305/305 哑哨兵 0、verify-anti-scam-backfill 13/13**）。
+* 需求：用户要求开屏以外的地方也写防倒卖；边界不变（纯静态文案、零逻辑零性能开销、不影响正常用户与二传自部署）。
+* 验证：产物断言 title/set-alert 倒卖句/lic 严禁倒卖行/manifest description 全部在位；node --check 无涉（纯 HTML/JSON 文案）；哨兵 305/305。
+* 待真机：QQ/微信转发官方链接看分享卡片标题带「完全免费·禁止倒卖」；设置页底部声明含倒卖句；功能介绍页许可卡含严禁倒卖行。
+
+### 2026-09-04 17:0x（防倒卖收尾：置顶条补「买家直呼」句——目标收窄为只防官方链接倒卖，不加任何影响用户/二传者的技术手段；已构建）
+* [AI-B 域]（**改动文件：src/template.html（署名·禁倒卖置顶条 <p> 末句改）、src/pwa/notice.json（alert2 同步）、src/js/clock.js（回填 BARS[1].fallback 同步——三处文案源保持一致）；构建状态：已构建·sw mochi-mtmpg9sv 哨兵 305/305 哑哨兵 0、verify-anti-scam-backfill 13/13**）。
+* 需求边界：用户确认不做反调试/误伤性手段、不误伤正常二传自部署，只防「官方链接被倒卖」——结论：现有防线（置顶双声明+回填+许可条款）即该场景的全部所需；原提「埋点分散化/远程时效公告」防的是代码搬运型倒卖，按边界放弃不做。
+* 文案改动：「发现请拒买并举报」→「如果你是花钱买来的链接：你被骗了，请拒付退款并举报卖家」（直接对已付费买家喊话，杀死倒卖成交）。marks 特征词（署名/倒卖/署名锚点）不变，回填在位判定与 verify 断言不受影响。
+
+### 2026-09-04 16:4x（#153 安卓多机型「挂后台不弹通知、回前台一口气弹出」：Chromium139 冻结线 5min→1min 撞上保活退避静默窗口；已构建）
+* [AI-B 域]（改动：src/js/bg-keep.js 两处、build.mjs FIX_SENTINELS 2 条、FIX-REGRESSION.md #153 行）。
+* 根因：Chromium 139 起安卓后台页面冻结 5 分钟→1 分钟（stop-in-background，Edge 等 chromium 系内核跟进，多机型同时出现=环境变化非代码回归）；保活音频被抢焦点暂停后退避最长 60s，静默窗口跨过冻结线→整页冻结→定时器全停=后台无消息无通知，回前台解冻+mochi-fg-resume 补触发一口气补跑。
+* 修复（通用根因修复无机型分支）：①切后台方向保活自愈（visibilitychange→hidden：音频暂停时清退避+立即补播+最快档 5s 重试；原只有回前台 healKeepAlive，切后台方向空白）；②隐藏期补播退避封顶 20s（前台 60s 不变，不回归 v3.13.x 音频拉锯修复）。
+* 验证：node --check 过；needle 双双源文件内唯一；构建哨兵 305/305 全绿哑哨兵 0。待真机：挂后台 10min+ 通知照常弹、回前台不再积压爆发、前台听歌切后台音频让位节奏不变。
+
 # 本次构建者：AI-B（本会话：#151 切联系人桌面三回归修复，改动 src/js/personalize.js、build.mjs 哨兵5条、FIX-REGRESSION.md #151 行、tools/verify-desk-switch.mjs；开工时工作区含 #150/#149 会话已构建完成的改动，本次构建一并收口）
 
 ### 2026-09-04 15:0x（#149 第二台确认设备 vivo X200s Edge＝部署前旧版，同一 bug 无需改码；仅更新 FIX-REGRESSION 设备记录；文档提交）

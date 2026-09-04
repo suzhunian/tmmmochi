@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual">
-<title>Mochi 字卡传讯</title>
-<meta name="description" content="情侣专属的摸鱼字卡聊天模拟器">
+<title>Mochi 字卡传讯（完全免费·禁止倒卖）</title>
+<meta name="description" content="情侣专属的摸鱼字卡聊天模拟器。本站完全免费，任何收费均为倒卖诈骗；唯一作者：小红书@言序（1842523578）。如果你是花钱买来的链接：你被骗了，请拒付退款并举报卖家。">
 <meta name="theme-color" content="#111111">
 <link rel="manifest" href="./manifest.json">
 <!-- v3.5.158：站点图标用带 mochi 字母的 icon-512——Chrome 安卓通知左侧小图标取自站点图标 -->
@@ -2590,6 +2590,7 @@ scrollbar-width:none; -ms-overflow-style:none; flex-shrink:0;
 }
 .card-tabs::-webkit-scrollbar { display:none; }
 #dc-tabs.card-tabs, #fc-tabs.card-tabs { flex-wrap:wrap; overflow-x:visible; row-gap:8px; }
+#cc-tabs.card-tabs { flex-wrap:wrap; overflow-x:visible; row-gap:8px; }
 .cc-tab {
 flex:0 0 auto; display:inline-flex; align-items:center; gap:5px;
 padding:9px 14px; font-size:13px; border-radius:99px;
@@ -2599,6 +2600,7 @@ transition:background .15s ease, color .15s ease;
 -webkit-tap-highlight-color:transparent;
 }
 .cc-tab svg { width:15px; height:15px; }
+.cc-tab[hidden] { display:none; }
 .cc-tab.sel { background:#111; color:#fff; border-color:#111; }
 .cc-tab-n {
 font-style:normal; min-width:18px; height:18px; padding:0 5px; box-sizing:border-box;
@@ -8603,7 +8605,7 @@ transition-duration: .01ms !important;
         <!-- v3.26.x：署名·禁倒卖置顶声明——二传必须标注原作者署名，严禁收费倒卖本站链接；静态 DOM，在线 notice.json 覆盖只改公告列表，不影响此处 -->
         <div class="splash-alert" data-anti-scam="2">
           <div class="splash-alert-t">转载署名 · 严禁倒卖</div>
-          <p><strong>二传、分享本站链接必须标注作者署名：小红书 @言序（1842523578），禁止删除或修改。</strong>严禁冒为自己制作、删除篡改署名，或以任何形式收费倒卖本站链接、安装包——本站完全免费，收费即诈骗，发现请拒买并举报。</p>
+          <p><strong>二传、分享本站链接必须标注作者署名：小红书 @言序（1842523578），禁止删除或修改。</strong>严禁冒为自己制作、删除篡改署名，或以任何形式收费倒卖本站链接、安装包——本站完全免费，收费即诈骗。如果你是花钱买来的链接：你被骗了，请拒付退款并举报卖家。</p>
         </div>
         <div class="splash-notice-title">Mochi字卡 · 开屏说明</div>
         <div class="splash-notice-sub">（请认真阅读）</div>
@@ -8777,9 +8779,9 @@ transition-duration: .01ms !important;
     <!-- v3.8.y：底部统一装进一个卡片框（版本/加载/提示/按钮成一整体，与顶部品牌卡片呼应） -->
     <div class="splash-footcard">
       <!-- v3.8.y：底部版本块——两行：名称+版本 / 部署时间+实时秒数（实时秒写入 #splash-ver-live） -->
-      <div class="splash-ver" id="splash-ver" data-build-ts="1788503650235">
-        <span class="sv-app">Mochi 字卡传讯 <b>v3.26.416</b></span>
-        <span class="sv-deploy">部署于 2026-09-04 14:34<span id="splash-ver-live"></span></span>
+      <div class="splash-ver" id="splash-ver" data-build-ts="1788519727066">
+        <span class="sv-app">Mochi 字卡传讯 <b>v3.26.425</b></span>
+        <span class="sv-deploy">部署于 2026-09-04 19:02<span id="splash-ver-live"></span></span>
       </div>
       <!-- v3.5.120：数据（IndexedDB 回填）加载完成前不显示「点击进入」按钮，
            只显示加载提示；就绪后按钮才出现（clock.js 控制显隐） -->
@@ -9102,6 +9104,17 @@ transition-duration: .01ms !important;
         <div class="av"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
         <div class="ci"><div class="n">专属字卡</div><div class="m">只有当前桌面绑定的联系人才能使用</div></div>
         <div class="t" id="cc-list-count">0</div>
+      </div>
+      <!-- v3.32.x：其他互动功能字卡同公用/专属拆双入口（存储本就双作用域，取池合并） -->
+      <div class="chat-item glass" id="li-fun-cards-public">
+        <div class="av"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.4l6.1-.9z"/></svg></div>
+        <div class="ci"><div class="n">其他互动功能字卡·公用</div><div class="m">添加的功能字卡 · 每个桌面的联系人都能使用</div></div>
+        <div class="t" id="cc-fun-pub-count">0</div>
+      </div>
+      <div class="chat-item glass" id="li-fun-cards-mine">
+        <div class="av"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.4l6.1-.9z"/></svg></div>
+        <div class="ci"><div class="n">其他互动功能字卡·专属</div><div class="m">添加的功能字卡 · 只有当前桌面的联系人能使用</div></div>
+        <div class="t" id="cc-fun-count">0</div>
       </div>
       <div class="chat-item glass" id="li-checkin-cards-mine">
         <div class="av"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M12 3a9 9 0 000 18"/></svg></div>
@@ -9737,6 +9750,22 @@ transition-duration: .01ms !important;
         <button class="cc-tab" data-type="image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5-9 9"/></svg>图片</button>
         <button class="cc-tab" data-type="poke"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 000 18"/><circle cx="12" cy="12" r="2"/></svg>拍一拍</button>
         <button class="cc-tab" data-type="voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>语音</button>
+        <!-- v3.32.x：其他互动功能字卡（自定义）——与系统预设【其他互动功能字卡】同分类，
+             用户自建的功能字卡存本作用域 cc-groups 同名字段，各功能经 getLibPool 并入抽取；
+             13 个功能 tab 仅「其他互动功能字卡」入口显示，公用/专属入口隐藏（openCcPage 按入口切换） -->
+        <button class="cc-tab" data-type="fish">摸鱼</button>
+        <button class="cc-tab" data-type="eat">吃饭</button>
+        <button class="cc-tab" data-type="period">经期</button>
+        <button class="cc-tab" data-type="water">喝水</button>
+        <button class="cc-tab" data-type="garden">花园</button>
+        <button class="cc-tab" data-type="sync">同频</button>
+        <button class="cc-tab" data-type="reach">伸手</button>
+        <button class="cc-tab" data-type="cjian">此间</button>
+        <button class="cc-tab" data-type="room">房间</button>
+        <button class="cc-tab" data-type="piggy">存钱罐</button>
+        <button class="cc-tab" data-type="drift">漂流瓶</button>
+        <button class="cc-tab" data-type="interact">互动回应</button>
+        <button class="cc-tab" data-type="music">音乐</button>
       </div>
       <div class="cc-toolbar">
         <button class="cc-tool" id="cc-new-group"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 100 8 4 4 0 000-8z"/><path d="M19 12a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.3 1a7 7 0 00-2-1.2L14.2 3h-4l-.4 2.6a7 7 0 00-2 1.2l-2.3-1-2 3.4 2 1.6A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.3-1a7 7 0 002 1.2l.4 2.6h4l.4-2.6a7 7 0 002-1.2l2.3 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/></svg>管理分组</button>
@@ -9875,11 +9904,11 @@ transition-duration: .01ms !important;
           <div class="txt">清除本地数据</div>
         </div>
       </div>
-      <div class="ver">Mochi 字卡传讯 v3.26.416</div>
+      <div class="ver">Mochi 字卡传讯 v3.26.425</div>
       <div class="ver-credit">原版小红书@言序（1842523578）</div>
       <!-- v3.27.x：设置页底部防骗声明 -->
       <div class="set-alert">
-        <b>Mochi字卡网站免费。</b>作者只有小红书这一个账号（小红书@言序（1842523578））。如有出现任何收费情况，均为诈骗，注意防止被骗。
+        <b>Mochi字卡网站免费。</b>作者只有小红书这一个账号（小红书@言序（1842523578））。如有出现任何收费情况，均为诈骗，注意防止被骗。二传、分享本站链接必须标注作者署名：小红书 @言序（1842523578），禁止删除或修改；严禁收费倒卖本站链接、安装包——如果你是花钱买来的链接：你被骗了，请拒付退款并举报卖家。
       </div>
     </div>
 
@@ -10143,12 +10172,13 @@ transition-duration: .01ms !important;
             <div class="lic-hero-top">
               <div class="lic-title">Mochi 字卡传讯</div>
               <span class="lic-badge">原版</span>
-              <span class="lic-ver">v3.26.416</span>
+              <span class="lic-ver">v3.26.425</span>
             </div>
             <div class="lic-p">原创极简风情侣聊天模拟器：黑白灰简约设计，数据全部保存在本地、无需联网；所有内容均为代码触发、按概率运行，联系方可主动发送聊天消息。代码从零编写并完全开源——本作即原版。</div>
             <div class="lic-pills">
               <span class="lic-pill">纯本地存储</span>
               <span class="lic-pill">无需联网</span>
+              <span class="lic-pill">完全免费·禁止倒卖</span>
               <span class="lic-pill">开源 · 支持二传二改</span>
               <span class="lic-pill">支持私人部署</span>
             </div>
@@ -10162,12 +10192,14 @@ transition-duration: .01ms !important;
             <span class="lic-pill">可二传二改</span>
             <span class="lic-pill">支持私人部署</span>
             <span class="lic-pill">禁止商用</span>
+            <span class="lic-pill">严禁倒卖</span>
             <span class="lic-pill">需保留署名</span>
             <span class="lic-pill">注明灵感来源</span>
           </div>
           <div class="lic-p">Mochi 字卡为<b>原创独立作品（即原版）</b>，代码已在 GitHub 完全公开，支持私人部署，与网站同步更新。</div>
           <div class="lic-li" style="margin-top:6px">- 可自由二传、二改，支持私人部署，<b>禁止商用</b>，必须保留署名：<b>小红书 @言序（1842523578）</b>（禁止删除或修改）</div>
           <div class="lic-li">- 借鉴功能或代码，必须标注灵感来源：Mochi 字卡 · 小红书 @言序（1842523578）</div>
+          <div class="lic-li">- <b>严禁以任何形式收费倒卖本站链接、安装包</b>——本站完全免费，如果你是花钱买来的链接：你被骗了，请拒付退款并举报卖家</div>
         </div>
 
         <!-- 关于星言字卡与灵感来源（README.md） -->
@@ -10217,10 +10249,11 @@ transition-duration: .01ms !important;
           </details>
 
           <details class="lic-grp">
-            <summary><span class="lg-num">02</span><span class="lg-name">字卡系统</span><span class="lg-count">13</span></summary>
+            <summary><span class="lg-num">02</span><span class="lg-name">字卡系统</span><span class="lg-count">14</span></summary>
             <div class="lg-body">
           <div class="lic-li">字卡库：浏览全部字卡，支持搜索与自定义分组管理</div>
           <div class="lic-li">聊天字卡分类可上传：【主字卡】【颜文字】【emoji】【表情包】【图片】【拍一拍】【语音】分类</div>
+          <div class="lic-li">其他互动功能字卡（自定义）：字卡库→可自定义字卡→其他互动功能字卡·公用 / ·专属，可为摸鱼 / 吃饭 / 经期 / 喝水 / 花园 / 音乐等功能添加自定义字卡（可编辑 / 删除），功能触发时 TA 会随机使用</div>
           <div class="lic-li">互动卡片可自定义内容，概率触发互动（在字卡库里）</div>
           <div class="lic-li">TA 的询问 / 小问题 / 好奇 / 吐槽 / 查岗（含互动动作）/ 邀请：题库内容均可自定义</div>
           <div class="lic-li">寻踪日常字卡：地点、在做什么、说的话，均可自定义</div>
@@ -16438,7 +16471,7 @@ const BARS = [
 { tag: '1', title: '防骗提醒', key: 'alert', marks: ['免费', '诈骗', MARK_KEY],
 fallback: 'Mochi字卡网站完全免费，作者只有小红书这一个账号：小红书@言序（1842523578）。如有出现任何收费情况，均为诈骗，注意防止被骗。' },
 { tag: '2', title: '转载署名 · 严禁倒卖', key: 'alert2', marks: ['署名', '倒卖', MARK_KEY],
-fallback: '二传、分享本站链接必须标注作者署名：小红书 @言序（1842523578），禁止删除或修改。严禁冒为自己制作、删除篡改署名，或以任何形式收费倒卖本站链接、安装包——本站完全免费，收费即诈骗，发现请拒买并举报。' }
+fallback: '二传、分享本站链接必须标注作者署名：小红书 @言序（1842523578），禁止删除或修改。严禁冒为自己制作、删除篡改署名，或以任何形式收费倒卖本站链接、安装包——本站完全免费，收费即诈骗。如果你是花钱买来的链接：你被骗了，请拒付退款并举报卖家。' }
 ];
 const texts = {}; // key -> 当前权威文案（先本地兜底，官方拉取后覆盖）
 BARS.forEach(function (b) { texts[b.key] = b.fallback; });
@@ -16487,10 +16520,33 @@ box.innerHTML = '<b></b>';
 box.querySelector('b').textContent = texts['alert'];
 box.appendChild(document.createTextNode(' ' + texts['alert2']));
 }
+let bulletin = null;
+function ensureBulletin() {
+const notice = document.getElementById('splash-notice');
+if (!notice) return;
+let box = notice.querySelector('.splash-alert[data-anti-scam="3"]');
+const active = !!(bulletin && typeof bulletin.text === 'string' && bulletin.text.trim()
+&& (!bulletin.until || Date.now() < bulletin.until));
+if (!active) { if (box) box.remove(); return; }
+const want = bulletin.text.trim();
+if (!box) {
+box = document.createElement('div');
+box.className = 'splash-alert';
+const b2 = notice.querySelector('.splash-alert[data-anti-scam="2"]');
+notice.insertBefore(box, b2 ? b2.nextSibling : notice.firstChild);
+}
+box.setAttribute('data-anti-scam', '3');
+if (box.textContent !== '公告' + want) { // 内容变化 → 重写（标题固定「公告」）
+box.innerHTML = '<div class="splash-alert-t"></div><p></p>';
+box.querySelector('.splash-alert-t').textContent = '公告';
+box.querySelector('p').textContent = want;
+}
+}
 function run() {
 const b1 = ensureBar(BARS[0], null);
 ensureBar(BARS[1], b1 ? b1.nextSibling : null);
 ensureSettings();
+ensureBulletin();
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
 else run();
@@ -16504,6 +16560,16 @@ texts[b.key] = d[b.key].trim();
 dirty = true;
 }
 });
+if (d && typeof d.bulletin === 'object' && d.bulletin) {
+const nb = { text: String(d.bulletin.text || ''), until: Number(d.bulletin.until) || 0 };
+if (nb.text && (!bulletin || bulletin.text !== nb.text || bulletin.until !== nb.until)) {
+bulletin = nb;
+dirty = true;
+} else if (!nb.text && bulletin) {
+bulletin = null;
+dirty = true;
+}
+}
 if (dirty) run(); // 强刷回写
 })
 .catch(function () { /* 保留本地兜底 */ });
@@ -20554,6 +20620,7 @@ if (inAnyPage[wid]) return; // 布局里有名（哪怕页已不存在）→ 不
 const inLay = lay.some(page => (page || []).indexOf(wid) >= 0);
 if (!inLay && node.parentNode !== pool) pool.appendChild(node);
 });
+try { applyGroupChatMode(); } catch (e) {}
 if (window.deskRebuild) window.deskRebuild();
 try { renderDeskWidgets(); } catch (e) {}
 };
@@ -20734,7 +20801,7 @@ mainGrid.insertBefore(gcBtn, chatBtn.nextSibling);
 }
 gcBtn.hidden = false;
 }
-if (divBtn && mainGrid && divBtn.parentNode === mainGrid) {
+if (divBtn && divBtn.parentNode !== pool) {
 pool.appendChild(divBtn);
 }
 } else {
@@ -29300,6 +29367,7 @@ const data = JSON.stringify(myGroups);
 myEmojiStore().set('my-emoji-groups', data);
 return true;
 }
+window.getMyEmojiGroups = function () { return myGroups || []; };
 (function () {
 if (!window.idbGet) return;
 let retry = 0;
@@ -32640,14 +32708,16 @@ return pubCache;
 }
 function ownGroupsRaw() { return buildGroupsFrom(store.get('cc-groups')); }
 const CC_TYPES = ['text', 'kaomoji', 'emoji', 'sticker', 'image', 'poke', 'voice'];
+const CC_FUNC_KEYS = ['fish', 'eat', 'period', 'water', 'garden', 'sync', 'reach', 'cjian', 'room', 'piggy', 'drift', 'interact', 'music'];
+const CC_ALL_TYPES = CC_TYPES.concat(CC_FUNC_KEYS);
 const CC_GIF_MAX_B64 = 4 * 1024 * 1024;
 function mergeWithPublic(g) {
 const p = pubGroupsRaw();
 let has = false;
-for (let i = 0; i < CC_TYPES.length; i++) { if ((p[CC_TYPES[i]] || []).length) { has = true; break; } }
+for (let i = 0; i < CC_ALL_TYPES.length; i++) { if ((p[CC_ALL_TYPES[i]] || []).length) { has = true; break; } }
 if (!has) return g;
 const out = {};
-CC_TYPES.forEach(t => { out[t] = (g[t] || []).concat(p[t] || []); });
+CC_ALL_TYPES.forEach(t => { out[t] = (g[t] || []).concat(p[t] || []); });
 Object.keys(g).forEach(t => { if (!(t in out)) out[t] = g[t]; });
 return out;
 }
@@ -32655,10 +32725,10 @@ function mergeFiltered(own, pub) {
 const ownF = filterGroupsByOff(own, 'own');
 const pubF = filterGroupsByOff(pub, 'public');
 let hasPub = false;
-for (let i = 0; i < CC_TYPES.length; i++) { if ((pubF[CC_TYPES[i]] || []).length) { hasPub = true; break; } }
+for (let i = 0; i < CC_ALL_TYPES.length; i++) { if ((pubF[CC_ALL_TYPES[i]] || []).length) { hasPub = true; break; } }
 if (!hasPub) return ownF;
 const out = {};
-CC_TYPES.forEach(t => { out[t] = (ownF[t] || []).concat(pubF[t] || []); });
+CC_ALL_TYPES.forEach(t => { out[t] = (ownF[t] || []).concat(pubF[t] || []); });
 Object.keys(ownF).forEach(t => { if (!(t in out)) out[t] = ownF[t]; });
 return out;
 }
@@ -33142,22 +33212,39 @@ document.addEventListener('visibilitychange', function () {
 if (document.visibilityState === 'hidden') flushCcSave();
 });
 } catch (e) {}
-const libCounts = { pub: -1, own: -1 };
+const libCounts = { pub: -1, own: -1, fun: -1, pubFun: -1 };
 function countOf(g) {
 let n = 0;
 try { Object.keys(g || {}).forEach(t => (g[t] || []).forEach(grp => { if (Array.isArray(grp) && Array.isArray(grp[1])) n += grp[1].length; })); } catch (e) {}
 return n;
 }
+function countOfKeys(g, keys) {
+let n = 0;
+try { (keys || []).forEach(t => (g[t] || []).forEach(grp => { if (Array.isArray(grp) && Array.isArray(grp[1])) n += grp[1].length; })); } catch (e) {}
+return n;
+}
 function refreshLibCounts(force) {
-if (force) { libCounts.pub = -1; libCounts.own = -1; pubInvalidate(); }
+if (force) { libCounts.pub = -1; libCounts.own = -1; libCounts.fun = -1; libCounts.pubFun = -1; pubInvalidate(); }
 if (libCounts.pub < 0) {
 const n = countOf(pubGroupsRaw());
 libCounts.pub = n > 0 ? n : -1;
+libCounts.pubFun = countOfKeys(pubGroupsRaw(), CC_FUNC_KEYS);
 }
+if (libCounts.own < 0 || libCounts.fun < 0) {
+const og = ownGroupsRaw();
 if (libCounts.own < 0) {
-const n = countOf(ownGroupsRaw());
+const n = countOf(og);
 libCounts.own = n > 0 ? n : -1;
 }
+if (libCounts.fun < 0) libCounts.fun = countOfKeys(og, CC_FUNC_KEYS);
+}
+if (libCounts.pubFun < 0) {
+libCounts.pubFun = countOfKeys(pubGroupsRaw(), CC_FUNC_KEYS);
+}
+const pfe = document.getElementById('cc-fun-count');
+if (pfe) pfe.textContent = String(libCounts.fun < 0 ? 0 : libCounts.fun);
+const pfpe = document.getElementById('cc-fun-pub-count');
+if (pfpe) pfpe.textContent = String(libCounts.pubFun < 0 ? 0 : libCounts.pubFun);
 const pe = document.getElementById('cc-pub-count');
 if (pe) pe.textContent = libCounts.pub < 0 ? 0 : libCounts.pub;
 const oe = document.getElementById('cc-list-count');
@@ -33895,7 +33982,10 @@ const ccExport = document.getElementById('cc-export');
 if (ccExport) {
 const EXPORT_CATS = [
 ['text', '主字卡'], ['kaomoji', '颜文字'], ['emoji', 'emoji'],
-['sticker', '表情包'], ['image', '图片'], ['poke', '拍一拍'], ['voice', '语音']
+['sticker', '表情包'], ['image', '图片'], ['poke', '拍一拍'], ['voice', '语音'],
+['fish', '摸鱼'], ['eat', '吃饭'], ['period', '经期'], ['water', '喝水'], ['garden', '花园'],
+['sync', '同频'], ['reach', '伸手'], ['cjian', '此间'], ['room', '房间'], ['piggy', '存钱罐'],
+['drift', '漂流瓶'], ['interact', '互动回应'], ['music', '音乐']
 ];
 const ceMask = document.getElementById('cc-export-mask');
 const ceCats = document.getElementById('ce-cats');
@@ -33983,7 +34073,8 @@ ceMask.addEventListener('click', (e) => { if (e.target === ceMask) ceCloseFn(); 
 if (ceDo) {
 ceDo.addEventListener('click', () => {
 try {
-const out = { text: [], kaomoji: [], emoji: [], sticker: [], image: [], poke: [], voice: [] };
+const out = {};
+CC_ALL_TYPES.forEach(t => { out[t] = []; });
 EXPORT_CATS.forEach(([key]) => {
 const st = ceState[key];
 if (!st || !st.on) return;
@@ -34008,7 +34099,7 @@ toast('已导出所选字卡');
 }
 const ccImportData = document.getElementById('cc-import-data');
 if (ccImportData) {
-const CAT_NAMES = { text: '主字卡', kaomoji: '颜文字', emoji: 'emoji', sticker: '表情包', image: '图片', poke: '拍一拍', voice: '语音' };
+const CAT_NAMES = { text: '主字卡', kaomoji: '颜文字', emoji: 'emoji', sticker: '表情包', image: '图片', poke: '拍一拍', voice: '语音', fish: '摸鱼', eat: '吃饭', period: '经期', water: '喝水', garden: '花园', sync: '同频', reach: '伸手', cjian: '此间', room: '房间', piggy: '存钱罐', drift: '漂流瓶', interact: '互动回应', music: '音乐' };
 ccImportData.addEventListener('click', () => {
 if (window.openModal) {
 const curName = CAT_NAMES[cur] || '当前分类';
@@ -34049,7 +34140,8 @@ reader.readAsText(f);
 function writeImport(byCat, mode, targetCat) {
 let added = 0, dup = 0;
 if (mode === 'replace') {
-groups = { text: [], kaomoji: [], emoji: [], sticker: [], image: [], poke: [], voice: [] };
+groups = {};
+CC_ALL_TYPES.forEach(t => { groups[t] = []; });
 Object.keys(byCat).forEach(cat => {
 const pairs = byCat[cat];
 groups[cat] = pairs.map(([n, cs]) => [n, cs.slice()]);
@@ -34276,7 +34368,7 @@ saveGroups(groups);
 renderGroupsBar();
 render();
 toast('已清除全部字卡与分组');
-}, { noInput: true, staticText: '将删除全部 ' + total + ' 张字卡及所有分组（主字卡、颜文字、emoji、表情包、图片、拍一拍、语音），且无法恢复。确定继续吗？' });
+}, { noInput: true, staticText: '将删除全部 ' + total + ' 张字卡及所有分组（主字卡、颜文字、emoji、表情包、图片、拍一拍、语音及其他互动功能字卡），且无法恢复。确定继续吗？' });
 }
 });
 }
@@ -34624,7 +34716,10 @@ window.getCustomCards = function () {
 maybeHydrateReplyPool();
 const g = replyPoolGroups();
 const out = [];
-Object.keys(g).forEach(t => g[t].forEach(([name, arr]) => arr.forEach(c => out.push(c))));
+Object.keys(g).forEach(t => {
+if (CC_FUNC_KEYS.indexOf(t) >= 0) return;
+g[t].forEach(([name, arr]) => arr.forEach(c => out.push(c)));
+});
 return out;
 };
 window.getPokeCards = function () {
@@ -34656,6 +34751,36 @@ return out;
 window.getMediaGroups = function (type) {
 const g = replyPoolGroups();
 return (g[type] || []).map(([name, arr]) => [name, arr.filter(isMediaImg)]);
+};
+let ccFuncOwnSrc = null, ccFuncOwnMap = null;
+function ownFuncMap() {
+let raw = null;
+try { raw = store.get('cc-groups'); } catch (e) {}
+if (ccFuncOwnMap && ccFuncOwnSrc === raw) return ccFuncOwnMap;
+const map = {};
+CC_FUNC_KEYS.forEach(k => { map[k] = []; });
+try {
+const g = filterGroupsByOff(buildGroupsFrom(raw), 'own');
+CC_FUNC_KEYS.forEach(k => (g[k] || []).forEach(grp => {
+if (!Array.isArray(grp) || !Array.isArray(grp[1])) return;
+grp[1].forEach(c => { if (typeof c === 'string' && c && c.indexOf('data:') !== 0) map[k].push(c); });
+}));
+} catch (e) {}
+ccFuncOwnMap = map;
+ccFuncOwnSrc = raw;
+return map;
+}
+window.getCustomFuncCards = function (cat) {
+if (CC_FUNC_KEYS.indexOf(cat) < 0) return [];
+const out = ownFuncMap()[cat].slice();
+try {
+const pg = filterGroupsByOff(pubGroupsRaw(), 'public');
+(pg[cat] || []).forEach(grp => {
+if (!Array.isArray(grp) || !Array.isArray(grp[1])) return;
+grp[1].forEach(c => { if (typeof c === 'string' && c && c.indexOf('data:') !== 0) out.push(c); });
+});
+} catch (e) {}
+return out;
 };
 var SHRINK_EMBED_MAX = 120; // 内联表情包最长边（px）
 var SHRINK_EMBED_QUOTA = 16 * 1024; // 超过此字节长度的 dataURL 才值得压（小图直接原样）
@@ -34731,7 +34856,7 @@ document.addEventListener('contact-switched', function () {
 if (editSaveTimer) { clearTimeout(editSaveTimer); editSaveTimer = null; }
 pubInvalidate();
 offInvalidate(); // v3.30.x：专属停用集合按联系人隔离，切桌面必须失效缓存
-libCounts.pub = -1; libCounts.own = -1;
+libCounts.pub = -1; libCounts.own = -1; libCounts.fun = -1; libCounts.pubFun = -1;
 groups = loadGroups();
 refreshLibCounts(false);
 try { renderGroupsBar(); render(); } catch (e) {}
@@ -34741,7 +34866,10 @@ window.getCustomCardsFor = function (cid) {
 try { if (window.hydrateLibForCid) window.hydrateLibForCid(cid); } catch (e) {}
 const g = replyPoolGroupsFor(cid);
 const out = [];
-Object.keys(g).forEach(t => (g[t] || []).forEach(([name, arr]) => (arr || []).forEach(c => out.push(c))));
+Object.keys(g).forEach(t => {
+if (CC_FUNC_KEYS.indexOf(t) >= 0) return;
+(g[t] || []).forEach(([name, arr]) => (arr || []).forEach(c => out.push(c)));
+});
 return out;
 };
 window.getPokeCardsFor = function (cid) {
@@ -34789,7 +34917,7 @@ gRoot.set(PUB_KEY, JSON.stringify(data));
 pubInvalidate();
 try { st.remove('cc-groups'); } catch (e2) {} // 迁走即清，防回复池公用+专属重复
 if (isDefault) { try { gRoot.remove('cc-groups'); } catch (e2) {} }
-libCounts.pub = -1; libCounts.own = -1;
+libCounts.pub = -1; libCounts.own = -1; libCounts.fun = -1; libCounts.pubFun = -1;
 if (cid === (window.__activeCid || 'default')) {
 if (ccScope === 'own') { groups = loadGroups(); try { renderGroupsBar(); render(); } catch (e2) {} }
 else refreshLibCounts(false);
@@ -34839,7 +34967,7 @@ try { CC_TYPES.forEach(t => (g[t] || []).forEach(x => n += (Array.isArray(x[1]) 
 return n;
 }
 function refreshAfter(cid) {
-libCounts.own = -1;
+libCounts.own = -1; libCounts.fun = -1;
 if (cid === (window.__activeCid || 'default')) {
 pubInvalidate();
 if (ccScope === 'own') { groups = loadGroups(); try { renderGroupsBar(); render(); } catch (e2) {} }
@@ -34992,16 +35120,24 @@ try { fk = ccScope === 'public' ? (PUB_PREFIX + ':' + PUB_KEY) : (window.activeP
 if (!hydAbsent[fk]) { try { toast('字卡较多，正在加载…'); } catch (e) {} }
 return hydrateScope(ccScope === 'public' ? 'public' : 'own');
 }
-function openCcPage(scope) {
+function openCcPage(scope, startTab) {
 flushCcSave();
 ccScope = scope === 'public' ? 'public' : 'own';
 pubInvalidate();
-cur = 'text'; q = ''; curGroup = '';
+cur = (startTab && CC_ALL_TYPES.indexOf(startTab) >= 0) ? startTab : 'text';
+q = ''; curGroup = '';
 const ttl = document.getElementById('cc-page-title');
-if (ttl) ttl.textContent = ccScope === 'public' ? '公用字卡' : '专属字卡';
+if (ttl) ttl.textContent = (CC_FUNC_KEYS.indexOf(cur) >= 0)
+? '其他互动功能字卡·' + (ccScope === 'public' ? '公用' : '专属')
+: (ccScope === 'public' ? '公用字卡' : '专属字卡');
 const s1 = document.getElementById('cc-search-input');
 if (s1) s1.value = '';
-tabsWrap.querySelectorAll('.cc-tab').forEach(t => t.classList.toggle('sel', t.dataset.type === 'text'));
+const ccFuncOnly = CC_FUNC_KEYS.indexOf(cur) >= 0;
+tabsWrap.querySelectorAll('.cc-tab').forEach(t => {
+const isFunc = CC_FUNC_KEYS.indexOf(t.dataset.type) >= 0;
+t.classList.toggle('sel', t.dataset.type === cur);
+t.hidden = ccFuncOnly ? !isFunc : isFunc;
+});
 document.querySelectorAll('.page').forEach(p => p.hidden = true);
 const ccPage = document.getElementById('page-custom-cards');
 if (ccPage) ccPage.hidden = false;
@@ -35021,6 +35157,10 @@ const liPub = document.getElementById('li-custom-cards-public');
 if (liPub) liPub.addEventListener('click', () => openCcPage('public'));
 const li = document.getElementById('li-custom-cards');
 if (li) li.addEventListener('click', () => openCcPage('own'));
+const liFunMine = document.getElementById('li-fun-cards-mine');
+if (liFunMine) liFunMine.addEventListener('click', () => openCcPage('own', 'fish'));
+const liFunPub = document.getElementById('li-fun-cards-public');
+if (liFunPub) liFunPub.addEventListener('click', () => openCcPage('public', 'fish'));
 const ccBack = document.getElementById('cc-back');
 if (ccBack) {
 ccBack.addEventListener('click', () => {
@@ -35118,7 +35258,7 @@ hydInflight[fullKey] = window.idbHydrateKey(fullKey).then(ok => {
 delete hydInflight[fullKey];
 if (ok === null) { hydAbsent[fullKey] = true; return false; }
 pubInvalidate();
-libCounts.pub = -1; libCounts.own = -1;
+libCounts.pub = -1; libCounts.own = -1; libCounts.fun = -1; libCounts.pubFun = -1;
 const scopeLive = (scope === 'public') ? (ccScope === 'public') : (ccScope === 'own');
 if (scopeLive) {
 try { groups = loadGroups(); renderGroupsBar(); render(); } catch (e) {}
@@ -37995,8 +38135,13 @@ return (DATA[cat] || []).slice();
 };
 window.getLibPool = function (cat, group, fallback) {
 const g = (DATA[cat] || []).find(x => x[0] === group);
-const arr = g && Array.isArray(g[1]) && g[1].length ? g[1] : (Array.isArray(fallback) ? fallback : []);
-return arr.slice();
+let arr = g && Array.isArray(g[1]) && g[1].length ? g[1] : (Array.isArray(fallback) ? fallback : []);
+arr = arr.slice();
+try {
+const cf = (window.getCustomFuncCards && window.getCustomFuncCards(cat)) || [];
+if (cf.length) arr = arr.concat(cf);
+} catch (e) {}
+return arr;
 };
 window.getInteractPool = function (name, fallback) {
 return window.getLibPool('interact', name, fallback);
@@ -49081,6 +49226,7 @@ if (!delayMs) {
 kaPauseStreak++;
 delayMs = Math.min(cfg.base * Math.pow(2, Math.min(kaPauseStreak - 1, 10)), cfg.max);
 }
+if (document.visibilityState === 'hidden' && delayMs > 20000) delayMs = 20000;
 kaDelay = delayMs;
 window.__kaNextDelayMs = delayMs; // 回归探针
 kaTimer = setTimeout(function () {
@@ -49324,6 +49470,15 @@ if (document.visibilityState === 'visible') _onFgVisible();
 });
 window.addEventListener('pageshow', function (e) {
 if (e.persisted || document.visibilityState === 'visible') _onFgVisible();
+});
+document.addEventListener('visibilitychange', function () {
+if (document.visibilityState !== 'hidden') return;
+if (!keepEnabled || !keepAudio || !keepAudio.el || musicNowPlaying()) return;
+if (!keepAudio.el.paused) return;
+kaResetBackoff();
+const p = keepAudio.el.play();
+if (p && p.catch) p.catch(function () {});
+kaSchedule();
 });
 function requestWakeLockTop() {
 try {
@@ -53106,6 +53261,12 @@ const onlyData = (groups) => (groups || [])
 .map(([n, a]) => [n, (a || []).filter(s => typeof s === 'string' && s.indexOf('data:') === 0)])
 .filter(([, a]) => a.length);
 if (comStickerTab === 'ta') return onlyData((window.getMediaGroups && window.getMediaGroups('sticker')) || []);
+try {
+if (window.getMyEmojiGroups) {
+const g = window.getMyEmojiGroups();
+if (Array.isArray(g) && g.length) return onlyData(g);
+}
+} catch (e) {}
 try {
 const v = JSON.parse(window.xyStore('xy-home-v2').get('my-emoji-groups') || 'null');
 return Array.isArray(v) ? onlyData(v) : [];
@@ -75209,6 +75370,32 @@ setTimeout(maybeShow, 300); // 留一点开屏退出动画缓冲
 }
 }, 300);
 })();
+(function () {
+const W1 = 'Mochi字卡网站完全免费，作者只有小红书这一个账号：小红书@言序（1842523578）。如有出现任何收费情况，均为诈骗，注意防止被骗。';
+const W2 = '二传、分享本站链接必须标注作者署名：小红书 @言序（1842523578），禁止删除或修改。严禁冒为自己制作、删除篡改署名，或以任何形式收费倒卖本站链接、安装包——本站完全免费，收费即诈骗。如果你是花钱买来的链接：你被骗了，请拒付退款并举报卖家。';
+function mkWatchBar(tag, title, text) {
+const b = document.createElement('div');
+b.className = 'splash-alert';
+b.setAttribute('data-anti-scam', tag);
+b.innerHTML = '<div class="splash-alert-t"></div><p></p>';
+b.querySelector('.splash-alert-t').textContent = title;
+b.querySelector('p').textContent = text;
+return b;
+}
+setInterval(function () {
+try {
+const n = document.getElementById('splash-notice');
+if (!n) return;
+if (!n.querySelector('.splash-alert[data-anti-scam="1"]')) {
+n.insertBefore(mkWatchBar('1', '防骗提醒', W1), n.firstChild);
+}
+if (!n.querySelector('.splash-alert[data-anti-scam="2"]')) {
+const b1 = n.querySelector('.splash-alert[data-anti-scam="1"]');
+n.insertBefore(mkWatchBar('2', '转载署名 · 严禁倒卖', W2), b1 ? b1.nextSibling : n.firstChild);
+}
+} catch (e) { /* 静默：看门狗绝不能成为错误源 */ }
+}, 5000);
+})();
 } catch (__e) { try { console.error("[JS] pwa.js", __e && __e.message || __e); } catch (x) {} if (window.__jsErrors) window.__jsErrors.push(String(__e && __e.message || __e)); } })();
 (function () { try {
 (function () {
@@ -77708,4 +77895,4 @@ return { lock: document.body.classList.contains('scroll-lock'), open: open };
 <!-- __MOCHI_EOF__ -->
 </body>
 </html>
-<!-- __MOCHI_EOF__ mtmkw8mz -->
+<!-- __MOCHI_EOF__ mtmugtlm -->

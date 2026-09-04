@@ -25,7 +25,7 @@
     { tag: '1', title: '防骗提醒', key: 'alert', marks: ['免费', '诈骗', MARK_KEY],
       fallback: 'Mochi字卡网站完全免费，作者只有小红书这一个账号：小红书@言序（1842523578）。如有出现任何收费情况，均为诈骗，注意防止被骗。' },
     { tag: '2', title: '转载署名 · 严禁倒卖', key: 'alert2', marks: ['署名', '倒卖', MARK_KEY],
-      fallback: '二传、分享本站链接必须标注作者署名：小红书 @言序（1842523578），禁止删除或修改。严禁冒为自己制作、删除篡改署名，或以任何形式收费倒卖本站链接、安装包——本站完全免费，收费即诈骗，发现请拒买并举报。' }
+      fallback: '二传、分享本站链接必须标注作者署名：小红书 @言序（1842523578），禁止删除或修改。严禁冒为自己制作、删除篡改署名，或以任何形式收费倒卖本站链接、安装包——本站完全免费，收费即诈骗。如果你是花钱买来的链接：你被骗了，请拒付退款并举报卖家。' }
   ];
   const texts = {}; // key -> 当前权威文案（先本地兜底，官方拉取后覆盖）
   BARS.forEach(function (b) { texts[b.key] = b.fallback; });
@@ -79,10 +79,35 @@
     box.querySelector('b').textContent = texts['alert'];
     box.appendChild(document.createTextNode(' ' + texts['alert2']));
   }
+  // 远程时效公告（可选）：官方 notice.json 下发 { bulletin: { text, until } }，until=epoch 毫秒（缺省/过期自动摘除）。
+  // 用途：临时插播场景（如发现倒卖，对所有联网副本含二传远程挂横幅）；notice.json 不带 bulletin 字段 = 完全不显示，零开销。
+  let bulletin = null;
+  function ensureBulletin() {
+    const notice = document.getElementById('splash-notice');
+    if (!notice) return;
+    let box = notice.querySelector('.splash-alert[data-anti-scam="3"]');
+    const active = !!(bulletin && typeof bulletin.text === 'string' && bulletin.text.trim()
+      && (!bulletin.until || Date.now() < bulletin.until));
+    if (!active) { if (box) box.remove(); return; }
+    const want = bulletin.text.trim();
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'splash-alert';
+      const b2 = notice.querySelector('.splash-alert[data-anti-scam="2"]');
+      notice.insertBefore(box, b2 ? b2.nextSibling : notice.firstChild);
+    }
+    box.setAttribute('data-anti-scam', '3');
+    if (box.textContent !== '公告' + want) { // 内容变化 → 重写（标题固定「公告」）
+      box.innerHTML = '<div class="splash-alert-t"></div><p></p>';
+      box.querySelector('.splash-alert-t').textContent = '公告';
+      box.querySelector('p').textContent = want;
+    }
+  }
   function run() {
     const b1 = ensureBar(BARS[0], null);
     ensureBar(BARS[1], b1 ? b1.nextSibling : null);
     ensureSettings();
+    ensureBulletin();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
   else run();
@@ -97,6 +122,17 @@
           dirty = true;
         }
       });
+      // 远程时效公告：与本地状态不同才刷（含下发/摘除）
+      if (d && typeof d.bulletin === 'object' && d.bulletin) {
+        const nb = { text: String(d.bulletin.text || ''), until: Number(d.bulletin.until) || 0 };
+        if (nb.text && (!bulletin || bulletin.text !== nb.text || bulletin.until !== nb.until)) {
+          bulletin = nb;
+          dirty = true;
+        } else if (!nb.text && bulletin) {
+          bulletin = null;
+          dirty = true;
+        }
+      }
       if (dirty) run(); // 强刷回写
     })
     .catch(function () { /* 保留本地兜底 */ });
