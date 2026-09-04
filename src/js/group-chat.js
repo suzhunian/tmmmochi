@@ -1839,7 +1839,21 @@
     if (window.playSfx) window.playSfx('out');
     scheduleReply('');
   }
-  if (gcContinueBtn) gcContinueBtn.addEventListener('click', (e) => { e.stopPropagation(); gcContinueSay(); });
+  // #152：与聊天页 chat-continue-btn 同款防吞——安卓键盘收起叠着手势时输入栏位移，
+  // 合成 click 二次命中测试落错元素（无报错无回复）；触摸 pointerdown 按下即触发 +
+  // 1.2s 防重入挡合成 click 双触发；鼠标仍走 click。stopPropagation 语义保持原样
+  //（点按钮不让 document 级外点关闭逻辑收面板）。
+  let _gcCsFiredAt = 0;
+  function gcCsFireContinue() {
+    const now = Date.now();
+    if (now - _gcCsFiredAt < 1200) return;
+    _gcCsFiredAt = now;
+    gcContinueSay();
+  }
+  if (gcContinueBtn) {
+    gcContinueBtn.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse') return; gcCsFireContinue(); });
+    gcContinueBtn.addEventListener('click', (e) => { e.stopPropagation(); gcCsFireContinue(); });
+  }
   if (gcMicBtn) gcMicBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!window.openVoicePanelFor) return;
@@ -1916,6 +1930,9 @@
   if (gcEmojiBtn) gcEmojiBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!window.openEmojiPanelForInsert) return;
+    // #145：再次点击=关闭（按钮切换开关；先于 openEmojiPanelForInsert 判断，防「重开+外点关闭互相覆盖」）
+    const epEl = document.getElementById('emoji-panel');
+    if (epEl && !epEl.hidden) { window.closeEmojiPanelForInsert && window.closeEmojiPanelForInsert(); return; }
     // allowUrl：链接保存的表情在群聊里直接发送（仅信纸插入才限 data:）
     window.openEmojiPanelForInsert((src) => sendGcSticker(src), { allowUrl: true });
     // mail-emoji-mode 会把面板压低到 bottom:64px（写信页布局），群聊页与聊天页一致用默认 96px

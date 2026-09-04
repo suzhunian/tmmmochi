@@ -1,3 +1,118 @@
+# 本次构建者：AI-B（本会话：#151 切联系人桌面三回归修复，改动 src/js/personalize.js、build.mjs 哨兵5条、FIX-REGRESSION.md #151 行、tools/verify-desk-switch.mjs；开工时工作区含 #150/#149 会话已构建完成的改动，本次构建一并收口）
+
+### 2026-09-04 15:0x（#149 第二台确认设备 vivo X200s Edge＝部署前旧版，同一 bug 无需改码；仅更新 FIX-REGRESSION 设备记录；文档提交）
+* [AI-A 域]（**改动文件：FIX-REGRESSION.md（#149 症状补 vivo X200s Edge 13:38 诊断＝构建 ts 1788499094635 即 13:18 旧版，非新根因；设备索引 vivo X200s 加 149）、WORKLOG.md 本行；构建状态：无源码改动不涉及构建，线上 ts=1788503650235（14:34）已含 #149 修复**）。
+* 核对：src/js/chat.js 四处 mochiMediaIsToken 判定在位（5 处引用）、build.mjs #149 哨兵 4 条在位、--check-sentinels 303/303 哑哨兵 0——#150/#151 两次后续构建未覆盖本修复。
+* 待真机：vivo X200s 更新构建（杀 PWA 重开/刷新两次）后复测引用缩略图，同 #149 验证方式。
+* 另记：vivo 诊断含一条 00:10:50 page-chat `Cannot read properties of null (reading 'duration')`（:40704，疑似音频元数据未就绪读 duration，仅 1 次未复现），暂不立案，复发再查。
+
+
+### 2026-09-04 14:4x（#152 iQOO Neo10Pro 等安卓「继续说」按钮点击无回复：键盘收起吞 click，触摸改 pointerdown；源已完成·未构建，请构建者收口）
+* [AI-A 域]（**改动文件：src/js/chat.js（chat-continue-btn 触摸 pointerdown 按下即触发+1.2s 防重入+鼠标 click 原样；continueChat 主逻辑不动）、src/js/group-chat.js（gc-continue-btn 同款，stopPropagation 语义保持）、build.mjs（FIX_SENTINELS 2 条——⚠️ 与你本会话的 5 条同文件，你追加时请基于最新文件重读，我的是数组尾部 #152 两条）、FIX-REGRESSION.md（#152 行，追加在文件尾）、tools/verify-continue-btn.mjs（新增行为断言 6/6，verify:all 自动纳入）；构建状态：未构建（工作区现行 index.html 是你 14:3x 版本，实测 grep 不含本修复，需要重新 build 收口）**）。
+* 需求/反馈：iQOO Neo10Pro Chrome 149（诊断 v3.26.404）：回复设置开了「让对方继续说【按正常回复时间】【底部聊天栏按钮触发】」，点底部「继续说」按钮联系人不回复、无打字提示、无报错；用户反馈安卓其他机型也有（=机型无关）。要求不覆盖修复、登记防回归。
+* 根因（无头 Chrome 真实触摸管线复现实证）：安卓键盘收起与点按手势重叠时（打字后立刻点按钮最典型），输入栏随视口回弹下移，touchend 的二次命中测试落在位移后的元素上，合成 click 被派发到错误元素（复现：click 落到 span.msg-time，按钮监听器 0 触发、无异常）——静默无回复。诊断里键盘状态机长时间滞留 kbActive/收起动画期（vv 卡 502/基线 690）正是高危环境；诊断轨迹 click 已命中按钮的个案与 cs-normal=1「回复速度」长延时（默认最长 40s）观感叠加。continueChat/replyOnce/字卡池/卡死状态下的点击链路均实测正常，排除。
+* 方案：按钮触摸事件改 pointerdown（目标是真实按压元素，不经历触摸后的二次命中测试，布局位移吞不掉）+ 防重入 1.2s 挡 pointerdown 已触发后补发的合成 click 双触发；鼠标仍走 click；无 PointerEvent 老内核 click 兜底。群聊同款按钮同步修（同输入栏同风险）。
+* 验证：node --check 过；临时目录真实构建哨兵 **303/303** 全绿哑哨兵 0（needle 含 `(e)`/属性链等产物稳定子串，与 #127/#150 同风格，实际构建输出实证在位）；verify-continue-btn **6/6**（①键盘收起吞 click 场景修复前 ccCalls=0→修复后=1 ②干净点按防重入只触发一次 ③纯 click 不回归 ④cs-normal=1 延时分条回复正常）；--check-sentinels 303 在位。
+* 待真机（iQOO Neo10Pro 及任意机型）：打字后（键盘开着）立刻点「继续说」→ 出现打字提示并按设置的回复速度收到回复（「按正常回复时间」默认回复速度最长 40s，请用户等待窗口对齐设置值）；群聊输入栏同款场景生效；连点不双倍回复。
+* 📌 顺带发现：FIX-REGRESSION.md 里 `| 151 |` 行出现两次（grep 计数=2），疑似你本会话追加重复，请自查去重，未代改（避免与你编辑冲突）。
+
+
+### 2026-09-04 14:3x（#151 小米14U Edge 切联系人回桌面「小组件隐藏但可点/桌面串显示/壁纸不铺满」三回归；已构建）
+* [AI-B 域]（**改动文件：src/js/personalize.js（五处：①切桌面美化键缺键复位 widget-opacity/bg-blur/bg-mask-op/desk-card-radius；②TEMPLATE_DESK_ARR 模板排布快照 + restoreTemplateDesk + applyDeskLayout 无布局分支接入；③setBgLayerImage 的 backgroundSize/Position 移出「图变才写」守卫；④deskSwitchBuild 标记——切桌面期间 buildDeskPages 删页收缩不落盘；⑤美化抽屉透明度滑杆统一 opacityRawToPct+存百分比整数）、build.mjs（FIX_SENTINELS 5 条）、FIX-REGRESSION.md（#151 行）、tools/verify-desk-switch.mjs（新增行为断言）；构建状态：最终构建·sw mochi-mtmkw8mz（14:34，含并行会话 #152「继续说」按钮修复一并收口）哨兵 303/303 哑哨兵 0**）。
+* 需求/反馈：小米14U Edge（诊断 v3.26.404）：①联系人里切换联系人再切回原桌面，小组件隐藏但位置点得到；②不同桌面显示不一样；③桌面背景图片没按比例铺满。用户反馈安卓其他机型也出现（=机型无关的逻辑 bug）。防回归红线：不动既有哨兵锚点（含 #147 壁纸防 iOS 重解码语义原样保留）。
+* 根因（三个独立机制叠加，详见 FIX-REGRESSION #151 行）：①美化键挂全局 CSS 变量但按桌面存键，切到无键桌面不复位 → 上一桌面透明度/蒙层残留（opacity 低的组件=不可见但可点中）；②无布局桌面切回时 applyDeskLayout 对 `!lay` 直接 return，被上个桌面布局扫进隐藏池的本桌组件永不归还（headless 实测复现：quote-row/checkin/music/weekend 卡池）；③#147 把 backgroundSize/Position 锁进「图变才写」守卫 → 壁纸定位/缩放改键不生效、同图异 pos 跨桌面串用（=「不按比例铺满」）；附带：切桌面 buildDeskPages 删页收缩把上一桌面排布写进新桌面 desk-layout（跨桌面污染持久化）、美化抽屉滑杆仍写 #146 同族小数脏值。
+* 方案：全部最小改动收在 personalize.js（AI-B 域），不碰 home.css/p2-features.js/contacts.js；backgroundImage 写入仍值变才写（#147 语义不变，size/pos 各自值变才写不盲写）。
+* 验证：node --check 过；verify-desk-switch **15/15**（四场景：无布局切回池归还+可选组件不误归还+布局键不被写串 / 透明度残留复位+按桌面应用 / 同图异 pos size 跟桌面走 / 删页不污染+有布局桌面正常归还）；构建哨兵 303/303 全绿哑哨兵 0；npm run verify:all 全量 131 通过/67 断言失败/2 超时（与 #140 时代基线 121/69/2 对比通过更多失败更少，失败项与桌面/美化域零关联，超时为 avatar-ta-change/pong-balance 两个历史慢脚本）；FIX-REGRESSION #151 行重复系本会话追加脚本误写两遍，已去重（并行会话 #152 发现并留话，致谢）。
+* 待真机（小米14U Edge 及任意机型）：联系人来回切小组件保持显示、各桌面布局/透明度/壁纸互不串；壁纸定位/缩放实时生效。**历史被污染的设备**（布局键已被写串的）：设置→恢复默认桌面一次或重新装修即可清除。
+
+# 本次构建者：AI-B（本会话：#150 后台来电系统通知，改动 call.js/bg-keep.js/build.mjs/FIX-REGRESSION.md；开工时 git status 有 #149 会话未提交改动（已构建完成），本次构建一并包含）
+
+
+### 2026-09-04 14:1x（#150 联系人来电浏览器挂后台无系统通知：后台来电改发系统通知+未接记录；已构建）
+* [AI-B 域]（改动：src/js/call.js、src/js/bg-keep.js、build.mjs 哨兵3条、FIX-REGRESSION.md #150 行；构建状态：见下）。
+* 根因：maybeIncoming 后台直接 return（v3.5.127），响铃中切后台也只静默按未接处理——后台永远无来电通知。
+* 修复：后台命中来电→写未接记录+聊天系统消息+SW 系统通知；响铃中切后台补发通知；bgNotifyCheck 增 extra.force 通道绕过 15s 过渡期/去重闸门。
+* 验证：node --check 过；构建哨兵含 #150 3 条全绿。
+
+
+### 2026-09-04 14:4x（防倒卖收尾：verify-anti-scam-backfill 5 用例试金石 + README 完整许可段 + marked() 空白归一化修复；已构建）
+* [AI-B 域]（**改动文件：tools/verify-anti-scam-backfill.mjs（新增，verify:all 自动纳入）、src/js/clock.js（marked() 在位判定空白归一化——条2 文案「小红书 @言序」带空格 vs 锚点串无空格致永远判不在位每次重写，测出来即修）、README.md（新增「许可与使用条款」段：可二传二改/必须保留署名/禁商用/开屏公告不可删+回填校验说明/DMCA 投诉依据）、FIX-REGRESSION.md（#148 验证方式补脚本）；构建状态：已构建·sw mochi-mtmjjy3o 哨兵 293/293 哑哨兵 0**）。
+* verify 脚本 5 用例全绿 **13/13**：①官方正常加载两条置顶条在最顶+设置页声明 ②二传副本删条→重建到最顶 ③篡改成收费文案→重写回官方版 ④拦截官方源（模拟断网）→静态兜底在位 ⑤删条+断网叠加→JS 常量重建；产物结构失配（正则 no-op）时脚本主动红。
+* 提交含并行会话 WORKLOG 报障排查条目（14:2x 零改动条目，日志追加一并入库）；未跟踪 tmp-repro2-out.txt 不入库。
+
+### 2026-09-04 14:2x（报障排查：Mi 10S+Via「所有页面无法滑动/强制在顶部」——代码层未复现，已回询诊断文件）
+* [AI-B 域]（**零改动，未构建**：真实触摸事件探针（CDP dispatchTouchEvent）实测当前构建——Via 默认 UA / Via 伪装 iPhone UA / 原生 Chrome 三种下，开屏公告与 page-setting 均正常滚动，scroll-lock 未挂、键盘钉顶未激活；临时探针已删）。需对方/用户知悉：应用内可致全页滑不动的已知机制仅 浮层锁残留（有触摸兜底+1s看门狗自愈）与 键盘钉顶（键盘期门控），需用户按报修格式补「诊断信息文件」+ 说明 Via 是否开了桌面版网站/全屏模式/广告拦截、是否卡开屏公告页。
+
+### 2026-09-04 14:0x（#149 聊天引用图片/表情包消息发送后引用块无缩略图（苹果17 等多机型）：引用链 data: 过滤丢媒体池令牌；已构建）
+* [AI-A 域]（**改动文件：src/js/chat.js（quoteTextSafe 令牌→空 / quoteHtml 对象 imgs 过滤 + 字符串引用分支认 @@m: 令牌 / quoteTextOf 图片载荷判定加令牌 / 聊天搜索结果图片判定加令牌）、build.mjs（FIX_SENTINELS 4 条，needle 各取四处判定完整表达式且在 chat.js 内唯一）、FIX-REGRESSION.md（#149 行 + 设备索引苹果17 加 149）；构建状态：见下**）。
+* 需求/反馈：苹果17 自带浏览器引用联系人的图片消息发送后不显示缩略图，用户反馈其他机型也有（= 机型无关）。
+* 根因：#142 媒体池把聊天图片令牌化 `@@m:<hash>` 后，引用链四处仍按 `indexOf('data:') === 0` 判定图片载荷——quoteTextOf 快照把令牌当引用文本（历史坏数据 t=令牌）、quoteHtml imgs 过滤把令牌缩略图整段丢弃、字符串引用分支不认令牌、quoteTextSafe 直出令牌串。引用**刚发出未令牌化**的图片仍有 data: → 正常，所以「时好时坏」跨机型随机出现。
+* 方案：判定统一扩为「data: 或 mochiMediaIsToken」，令牌照常渲染 `<img src>` 交 media-pool 文档级观察器解析（与消息本体图片同一机制）；不动 group-chat（群聊消息不令牌化）与 bg-keep（新消息通知发生在令牌化前，无实际影响）。
+* 验证：node --check 过；构建哨兵全绿哑哨兵 0。
+* 待真机（苹果17 及任意机型）：对**早前发过**的图片/表情包点引用 → 预览条出缩略图 → 发送后引用块出缩略图、无 `@@m:` 串；纯文字引用与引用跳转不回归。
+
+### 2026-09-04 13:4x（防骗+署名禁倒卖声明「运行时回填」恢复并扩展双条（防倒卖核心手段）；已随并行会话 962347d 构建入库）
+* [AI-B 域]（**改动文件：src/js/clock.js（顶部新增回填 IIFE：JS 常量兜底 + fetch 官方部署地址 notice.json 取权威 alert/alert2 强刷「开屏两条置顶声明 + 设置页 set-alert」——元素缺失重建插公告区最顶（条1防骗在上/条2署名紧跟）、文案被改（标题+全部特征词 marks 不在位）重写回官方版；二传者自己部署的副本也会向官方域名拉取，想删声明必须连回填逻辑一起改）、src/template.html（两条静态置顶条补 data-anti-scam="1"/"2" 标记供回填认领）、build.mjs（FIX_SENTINELS +3：insertBefore(box, refNode || notice.firstChild) / OFFICIAL_NOTICE, { cache: 'no-store' } / bar.marks.every，均 clock.js 内唯一逻辑锚点）、FIX-REGRESSION.md（#148 行）；构建状态：本会话 13:35 已构建（sw mochi-mtmisiew 哨兵 289/289），产物被并行会话 13:37 构建（mtmitlvc）覆盖，**全部改动随其 962347d 一并入库（其 WORKLOG 已留痕），哨兵全绿，双方知悉**）。
+* 需求：用户确认恢复 f7a8b5c 首建、0965278 清理时被整块移除的「防骗声明运行时回填」，并扩展为防骗+署名禁倒卖双条（防倒卖核心：任何二传副本联网时仍显示官方权威声明）。
+* 验证：node --check 过；node build.mjs --check-sentinels 289 全绿哑哨兵 0；HEAD index.html 含 OFFICIAL_NOTICE×2 / 缺失重建逻辑 / data-anti-scam×5。
+* 待真机：官方站开屏最顶两条声明正常无重复；断网开屏仍有静态兜底；设置页底部声明含署名禁倒卖句；改动 notice.json 的 alert/alert2 并部署后，二传副本开屏声明会远程跟随更新。
+
+### 2026-09-04 13:36（塔罗扩完整 78 张（22 大 + 56 小阿卡纳，全正逆位）+ 补 7 张完整牌阵选项；已构建）
+* [AI-A 域]（**改动文件：src/js/divination.js（TAROT 扩 56 张小阿卡纳：权杖/圣杯/宝剑/星币 ×1~10+宫廷 4，均带正逆位寓意+详细解读；TAROT_ICONS 新增 staff/sword/coin/page/knight/queen/king 7 个花色/人物图标；MODE_LABELS 补 7 张位标签：塔罗=过去/现在/未来/阻碍/助力/态度/结果）、src/template.html（桌面页 div-counts + 聊天页半框各补「7 张」按钮；功能介绍页文案改 78 张）；构建状态：已构建·sw mochi-mtmitlvc 哨兵 289/289 哑哨兵 0**）。
+* 用户报障「占卜牌的数量」：核对=抽牌逻辑无 bug、牌库数与注释一致；真差异=头注释承诺 7 张牌阵但 UI 从未有该按钮。本次扩 78 张 + 补 7 张按钮一并收口。
+* 雷诺曼 40 张为星言复刻设计（标准牌库 36，多灵体/香炉/床/市场 4 张），保留不改。
+* 验证：node --check 过；TAROT=78 / LENO=40 无重名；产物 星币国王、data-count="7"、data-chatcount="7"、"78 张完整牌库" 各 1 处；7 张结果 .div-mini flex-wrap 自适应（3+3+1）无需改 CSS。
+* 待真机：7 张抽牌流程/记录/发送文案张数正确；小阿卡纳图标显示正常。
+
+### 2026-09-04 12:0x（#147 iPhone16 Pro Safari 浏览器模式「退聊天回桌面巨卡」：壁纸清空/重设致 iOS 反复主线程解码 2.1MB 大图；已构建）
+* [AI-B 域]（**改动文件：src/js/personalize.js（壁纸改写 .phone 内常驻图层 #phone-bg-layer：setBgLayerImage 值变才写 + setBgLayerVisible opacity 切换；applyPhoneBg/applyPhoneBgPreset/clearPhoneBg/applyBgVisibility 5 处 shell 写点全部改道，退出桌面不再清空 backgroundImage）、tools/verify-desk-beauty.mjs（壁纸断言同步改图层+opacity）、build.mjs（FIX_SENTINELS 2 条）、FIX-REGRESSION.md（#147 行）；构建状态：已构建·sw 见 version.json**）。
+* 根因：applyBgVisibility 每次进出桌面清空/重设 .phone backgroundImage，2.1MB dataURL 壁纸在 iOS 上每次重设都主线程重新解码整张大图；chat-back 直挂 + page-phone MutationObserver 双触发=一次返回解码两次 → 用户实测退聊天回桌面巨卡、之后所有页面切换持续卡。
+* 图层 z-index:1 低于 .page/.tabbar/.statusbar 的 z-index:2，视觉语义与原清空/重设一致；applyBodyBg 手机端本就清空不动。
+* 验证：node --check 过；--check-sentinels 286 全绿哑哨兵 0；verify-desk-beauty 真实浏览器流程过（断言已改图层）。
+* 待真机（iPhone16 Pro Safari）：聊天↔桌面来回切换流畅、2MB 壁纸桌面滚动不卡；壁纸显隐视觉与原一致。
+
+# 本次构建者：AI-B（本会话：开屏公告更新——notice.json + template.html，改动前 git status 干净、无他人在途半成品）
+
+### 2026-09-04 13:07（开屏最顶新增「转载署名·严禁倒卖」置顶声明条；已构建）
+* [AI-B 域]（**改动文件：src/template.html（开屏公告区最顶防骗提醒条下方新增同款 .splash-alert 置顶条：二传须标作者署名 @言序（1842523578）禁止删除修改/严禁冒为自己制作、删改署名、收费倒卖链接安装包——静态 DOM，在线 notice.json 覆盖只改公告列表不影响此处，离线兜底也生效）、src/pwa/notice.json（新增 alert2 字段与置顶条文案同步，供未来运行时回填机制复用）；构建状态：已构建·sw mochi-mtmhsvhg 哨兵284/284 哑哨兵0**）。
+* 需求：①「二传须标作者署名」说明要求放在开屏最顶（原来是互助群公告章节第二行）；②防链接倒卖。
+* 方案：复用 v3.27.x 防骗置顶条形态（.splash-alert 静态 DOM + base.css 既有样式，无需改 CSS/JS），标题「转载署名 · 严禁倒卖」，与防骗提醒上下并列在公告区最顶。考证：f7a8b5c 曾加防骗声明运行时回填（OFFICIAL_NOTICE 拉官方 notice.json 强刷置顶条），0965278 整块移除（clock.js -62 行）；本次只做静态置顶条不动回填机制，防倒卖建议（含恢复回填的选项）在会话回复中说明。
+* 验证：notice.json JSON.parse 过；产物 index.html 置顶条顺序=防骗提醒→转载署名·严禁倒卖（offset 验证）→之后才是公告标题；「转载署名 · 严禁倒卖」index.html 1 处、notice.json alert2 1 处；哨兵 284/284 全绿哑哨兵 0、sw.js 9/9。
+* 待线上：真机刷新开屏，最顶两条置顶声明（防骗 + 署名禁倒卖），目录/章节内容不变。
+
+### 2026-09-04 12:52（开屏公告新增【互助群公告】章节 + 删除「评论区问我」相关文案；已构建）
+* [AI-B 域]（**改动文件：src/pwa/notice.json（sections 首位插入【互助群公告】章节：置顶图片链接指引/免费项目性质/二传需标作者署名@milk言序/milk json 导入/系统预设默认全开/免费非商业/互助群非客服/管理员是志愿者/bug 兼容归因/报修格式【手机型号+浏览器+问题+诊断信息文件】艾特群主/不承诺修复时间需自验/禁公屏梦；一章节删「评论区或互助群」句与小红书吞消息句、二章节「直接评论或群里艾特」改「群里艾特即可」）、src/template.html（离线兜底静态公告同步同款改动）；构建状态：已构建·sw mochi-mtmhfvyh 哨兵284/284 哑哨兵0**）。
+* 需求：①互助群群公告原文插入开屏；②「公开里写的可以评论问我」相关文案删掉（小红书评论区渠道下线）；③开屏补充说明「二传使用链接需标作者署名：小红书 @言序（1842523578），禁止删除或修改」（与五/六章既有署名条款呼应，位置放在互助群公告章节第二行）。
+* 方案：notice.json 在线渲染 + template.html 离线兜底两处同步（clock.js 拉取渲染逻辑无需改动）；章节条目格式沿用现有约定（字符串=编号条目/{h}=子标题/{b}=子列表项），报修格式与「二、关于 Bug 与报修」章节原有内容保持一致不冲突。
+* 验证：notice.json JSON.parse 过；产物 index.html 含【互助群公告】1 处、「评论区/吞消息/评论或群里艾特」0 处、二传署名句 1 处；notice.json 副本同步含新章节；哨兵 284/284 全绿哑哨兵 0、sw.js 9/9。
+* 待线上：部署后真机刷新看开屏目录出现【互助群公告】章节、原文无「评论区」字样；离线兜底（断网开屏）同款展示。
+
+### 2026-09-04 12:0x（#146 删除桌面【一键随机美化】功能 + 修「随机美化后小组件全透明、恢复默认布局救不回」：v3.31.x；已构建）
+* [AI-A 域跨改 personalize.js/template.html]（**改动文件：src/template.html（删 row-beauty-random 美化行 + desk-quick dq-random 快捷按钮）、src/js/personalize.js（删随机美化处理块与 bind；新增 opacityRawToPct 统一解析 + 启动脏值自愈，三处 parseInt 读取点换用）、build.mjs（FIX_SENTINELS 3 条：1 存在型 + 2 删除型 absent）、tools/verify-widget-opacity.mjs（新增行为断言）、FIX-REGRESSION.md（#146 行）；构建状态：已构建（随并行会话 #147 构建一并收口入库，产物已含修复，哨兵 284/284）**）。
+* 根因：随机美化把 widget-opacity 写成小数（"0.9"/"1"），读取点 parseInt 按百分比解析 → parseInt("0.9")=0 → --widget-opacity:0 小组件全透明；该键属美化键，恢复默认布局只清 desk-layout 清不掉它。
+* 修复：功能整体下线 + opacityRawToPct（≤1 按 ×100 换算）+ 启动把历史小数脏值改写为百分比存储（存量受影响设备升级后自动恢复显示）。
+* 验证：node --check 过；verify-widget-opacity **8/8**（0.9→90 自愈 / 1→100 自愈 / 80 不误改 / 入口已删除）；--check-sentinels 284 全绿哑哨兵 0。
+* 待真机：曾点过随机美化的设备升级后小组件恢复显示；美化页/快捷面板无随机美化入口；组件透明度滑杆、恢复全部默认美化正常。
+
+### 2026-09-04 11:5x（#145 聊天/群聊输入栏【表情包】按钮再点无法关闭：按钮无条件 open 改切换开关；已构建）
+* [AI-A 域跨改]（**改动文件：src/js/chat.js（表情按钮 click 改 toggle：面板已开先 closeEmojiPanel() 再 return；导出 window.closeEmojiPanelForInsert=closeEmojiPanel 供群聊复用）、src/js/group-chat.js（gc-emoji-btn 同款切换，复用导出关闭）、build.mjs（FIX_SENTINELS 2 条，window. 属性名锚点）、FIX-REGRESSION.md（#145 行）；构建状态：已构建·sw 见 version.json**）。
+* 根因：chat.js 表情按钮 click 无条件 openEmojiPanel()，外点关闭监听又排除按钮本身（!emojiBtn.contains）→ 再点永不关；群聊 gc-emoji-btn 更绕（重开+document 外点关闭互相覆盖，终态仍开）。
+* 验证：node --check 过；构建哨兵 281/281 全绿哑哨兵 0。待真机：聊天/群聊点表情按钮开→再点关；外点关闭/选表情发送/信箱批量插入模式不回归。
+* ⚠️ 构建夹带说明：构建时工作区含并行会话未提交改动——src/js/personalize.js + src/template.html（#146 随机美化删除 + widget-opacity 小数脏值修复）、src/js/chat.js + src/template.html（v3.31.x 收藏批量管理 favBatch 族）——改动成套完整、语法与哨兵全过，已随本次构建一并进入产物并随提交入库，请该会话知悉（WORKLOG 留痕，AGENTS.md「构建不夹带」特此说明）。
+
+### 2026-09-04 11:5x（#147 收藏页新增批量删除功能：v3.31.x；已构建）
+* [AI-A 域]（**改动文件：src/template.html（收藏页顶栏加批量管理按钮 #fav-manage-btn + 底部操作栏 #fav-batch-bar（取消/全选/删除）+ 功能介绍页 02 收藏行补文案）、src/js/chat.js（renderFav 批量模式状态 favBatch/favBatchSel/favBatchArr/favBatchVis + syncBatchBar + renderFavItem 批量勾选分支 + 四个按钮事件 + fav-back 退出批量）、src/css/chat-pages.css（.fav-batch-bar/.fb-btn/.fav-check 亮色）、src/css/dark.css（同款暗色适配，跨域改动已在此行说明）；构建状态：已构建·sw 见 version.json**）。
+* 构建者声明：本次 build 由本会话执行；**产物同时包含并行会话已完成的 #145（表情按钮再点关闭，build.mjs+chat.js+group-chat.js）与 #146（随机美化移除+透明度脏值修复，build.mjs+personalize.js+template.html）**——对方改动完整（其哨兵已随本次构建 284/284 验证在位），按 AGENTS.md 一并收口。
+* 功能：收藏页顶栏新增勾选图标按钮 → 进入批量管理：条目外侧圆圈勾选（捕获阶段 click 抢先拦截气泡内图片查看大图）、切换「我的/TA的」或分类 tab 自动收窄勾选、底部「取消/全选(取消全选)/删除(N)」；删除走 openModal 二次确认，直接改当次渲染的 fav 数组引用后 saveFav（避免重复 getFav 解析致 indexOf 失配）；长按/右键单删在批量模式下不注册。
+* 跨域改动 src/css/dark.css：仅追加收藏批量管理暗色 5 行（.fav-batch-bar/.fb-btn/.fav-check），未动其他规则。
+* 验证：node --check 过；构建后 --check-sentinels 全绿。
+
+### 2026-09-03 23:4x（#144 iPad Air 7 + Safari 主屏幕「全屏模式」无反应：iPadOS 伪装 UA 致 isIOS=false；已构建）
+* [AI-B 域]（**改动文件：src/js/device.js（isIOS 补 Macintosh 伪装分支：platform=MacIntel || /Macintosh/ + maxTouchPoints>1 + ontouchstart——真桌面 Mac maxTouchPoints=0 不误判）、src/js/idb.js（armFgIdbReset 同款 UA 检查补 touchMac，伪装 UA 的 iPad 回前台也重建 IDB 连接）、build.mjs（FIX_SENTINELS 2 条）、FIX-REGRESSION.md（#144 行）；构建状态：已构建·sw 见 version.json**）。
+* 根因：iPadOS 13+ UA 伪装桌面 Mac → isIOS=false → fullscreen.js 走错分支（iPad 无 Fullscreen API 开关被拒）+ ios-pwa-standalone 类不加（html 类空，#114/#129 安全区补偿在 iPad 全失效）；用户手动布局 pref:mobile 另把 isTablet 置假（保留不改，只管布局）。
+* 验证：node --check 过；五场景 isIOS 测试 + 三场景 idb gate 测试全过；--check-sentinels 279 全绿哑哨兵 0。
+* 待真机（iPad Air 7 + Safari 主屏幕）：点全屏模式有反应（内容顶满+iOS 说明弹出）、诊断 iOS=true html 类含 ios-pwa-standalone；iPad 杀后台重开数据正常。
+
 # 本次构建者：AI-A（本会话：#142 心愿单功能收口构建——用户催部署；并行会话 #144 拍一拍昵称制（chat.js+verify-poke-nick.mjs）源已完成一并收口；AI-C 通话昵称已自行构建提交）
 
 ### 2026-09-03 18:07（用户反馈：聊天设置改了联系人昵称，拍一拍消息里人称仍显示 TA/ta；改「称呼制」为「昵称制」；源已完成·未构建）
